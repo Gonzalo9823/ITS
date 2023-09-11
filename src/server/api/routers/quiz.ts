@@ -33,7 +33,6 @@ export const quizRouter = createTRPCRouter({
           },
         },
         where: {
-          skipped: false,
           userId: ctx.session.user.id,
           completedSecondTry: false,
         },
@@ -42,7 +41,8 @@ export const quizRouter = createTRPCRouter({
       if (hasActiveQuiz) {
         const { id, amountOfQuestions, completedFirstTry, questions } = hasActiveQuiz;
 
-        const currentQuestion = questions.find(({ answeredFirstTry, answeredSecondTry }) => {
+        const currentQuestion = questions.find(({ answeredFirstTry, answeredSecondTry, skipped }) => {
+          if (skipped) return false;
           return completedFirstTry ? !answeredSecondTry : !answeredFirstTry;
         })!;
 
@@ -98,12 +98,12 @@ export const quizRouter = createTRPCRouter({
           amountOfQuestions,
           completedFirstTry: false,
           completedSecondTry: false,
-          skipped: false,
           questions: {
             create: selectedQuestions.map((question) => ({
               questionId: question.id,
               answeredFirstTry: false,
               answeredSecondTry: false,
+              skipped: false,
             })),
           },
           userId: ctx.session.user.id,
@@ -208,6 +208,7 @@ export const quizRouter = createTRPCRouter({
       if (!quiz.completedFirstTry && questionIdx + 1 === quiz.amountOfQuestions) {
         const allCorrect = quiz.questions.every((question) => {
           if (question.id === input.questionId && isCorrect) return true;
+          if (question.skipped) return true;
           return question.selectedAnswerFirstTry ? question.question.answers[question.selectedAnswerFirstTry]?.isCorrect : false;
         });
 
@@ -232,7 +233,120 @@ export const quizRouter = createTRPCRouter({
       }
 
       if (quiz.completedFirstTry) {
-        const availableQuestions = quiz.questions.filter(({ answeredSecondTry }) => !answeredSecondTry);
+        const availableQuestions = quiz.questions.filter(({ answeredSecondTry, skipped }) => !answeredSecondTry && !skipped);
+
+        if (availableQuestions.length === 1) {
+          await ctx.prisma.quiz.update({
+            data: {
+              completedSecondTry: true,
+            },
+            where: {
+              id: input.id,
+            },
+          });
+
+          return {
+            completed: true,
+          };
+        }
+      }
+
+      return {
+        completed: false,
+      };
+    }),
+
+  skip: protectedProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        questionId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const quiz = await ctx.prisma.quiz.findFirstOrThrow({
+        include: {
+          questions: {
+            include: {
+              question: {
+                include: {
+                  answers: true,
+                },
+              },
+            },
+          },
+        },
+        where: {
+          id: input.id,
+          userId: ctx.session.user.id,
+        },
+      });
+
+      const question = quiz.questions.find(({ id }) => id === input.questionId)!;
+      const questionIdx = quiz.questions.findIndex((q) => q.id === question.id);
+
+      await ctx.prisma.quizQuestion.update({
+        include: {
+          question: {
+            include: {
+              answers: true,
+            },
+          },
+        },
+        data: {
+          skipped: true,
+        },
+        where: {
+          id: input.questionId,
+        },
+      });
+
+      const user = await ctx.prisma.user.findFirstOrThrow({
+        where: {
+          id: ctx.session.user.id,
+        },
+      });
+
+      await ctx.prisma.user.update({
+        data: {
+          points: user.points - question.question.dificulty,
+        },
+        where: {
+          id: user.id,
+        },
+      });
+
+      if (!quiz.completedFirstTry && questionIdx + 1 === quiz.amountOfQuestions) {
+        const allCorrect = quiz.questions.every((question) => {
+          if (question.id === input.questionId) return true;
+          if (question.skipped) return true;
+          return question.selectedAnswerFirstTry ? question.question.answers[question.selectedAnswerFirstTry]?.isCorrect : false;
+        });
+
+        const updateQuizData: Prisma.QuizUpdateInput = {
+          completedFirstTry: true,
+        };
+
+        const skippedQuestions = quiz.questions.filter(({ skipped }) => skipped);
+
+        if (skippedQuestions.length === quiz.amountOfQuestions - 1 || allCorrect) {
+          updateQuizData.completedSecondTry = true;
+        }
+
+        await ctx.prisma.quiz.update({
+          data: updateQuizData,
+          where: {
+            id: input.id,
+          },
+        });
+
+        return {
+          completed: true,
+        };
+      }
+
+      if (quiz.completedFirstTry) {
+        const availableQuestions = quiz.questions.filter(({ answeredSecondTry, skipped }) => !answeredSecondTry && !skipped);
 
         if (availableQuestions.length === 1) {
           await ctx.prisma.quiz.update({
@@ -269,7 +383,6 @@ export const quizRouter = createTRPCRouter({
         },
       },
       where: {
-        skipped: false,
         completedFirstTry: true,
         userId: ctx.session.user.id,
       },
@@ -290,8 +403,8 @@ export const quizRouter = createTRPCRouter({
         title: question.question.title,
         subtitle: question.question.subtitle,
         answers: question.question.answers,
-        answeredTry: quiz.completedSecondTry ? question.answeredSecondTry : question.answeredFirstTry,
-        selectedAnswerTry: quiz.completedSecondTry ? question.selectedAnswerSecondTry : question.selectedAnswerFirstTry,
+        answeredTry: question.skipped ? true : quiz.completedSecondTry ? question.answeredSecondTry : question.answeredFirstTry,
+        selectedAnswerTry: question.skipped ? null : quiz.completedSecondTry ? question.selectedAnswerSecondTry : question.selectedAnswerFirstTry,
       })),
     };
   }),

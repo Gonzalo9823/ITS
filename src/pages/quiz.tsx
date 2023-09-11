@@ -25,6 +25,7 @@ const QuestionPage: NextPage = () => {
   const [selectedAnswer, setSelectedAnswer] = useState("");
   const { isLoading, data, refetch } = api.quiz.get.useQuery({ subject });
   const { isLoading: isLoadingAnswer, mutateAsync: answerQuestion } = api.quiz.answerQuestion.useMutation();
+  const { isLoading: isLoadingSkip, mutateAsync: skipQuestion } = api.quiz.skip.useMutation();
 
   if (isLoading || !data) return <h1>Loading...</h1>;
 
@@ -48,7 +49,7 @@ const QuestionPage: NextPage = () => {
             question={{
               title: data.question.title,
               id: data.question.id,
-              disabled: isLoadingAnswer,
+              disabled: isLoadingAnswer || isLoadingSkip,
               description: data.question.subtitle ?? undefined,
               answers: data.question.answers.map((answer) => ({
                 checked: selectedAnswer === answer.id,
@@ -62,10 +63,33 @@ const QuestionPage: NextPage = () => {
             }}
           />
         </div>
-        <div className="flex justify-end">
+        <div className="flex justify-end space-x-5">
           <button
             type="button"
-            disabled={!selectedAnswer || isLoadingAnswer}
+            disabled={isLoadingAnswer || isLoadingSkip}
+            className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:bg-gray-400"
+            onClick={async () => {
+              try {
+                const { completed } = await skipQuestion({
+                  id: data.id,
+                  questionId: data.question.id,
+                });
+
+                if (completed) {
+                  await router.push("/quiz-summary");
+                } else {
+                  await refetch();
+                }
+              } catch (err) {
+                alert("Hubo un error.");
+              }
+            }}
+          >
+            Saltar
+          </button>
+          <button
+            type="button"
+            disabled={!selectedAnswer || isLoadingAnswer || isLoadingSkip}
             className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:bg-gray-400"
             onClick={async () => {
               try {
