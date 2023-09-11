@@ -63,9 +63,9 @@ export const quizRouter = createTRPCRouter({
       }
 
       // Create Quiz
-      const USER_POINTS = 5;
+      const { points } = await ctx.prisma.user.findFirstOrThrow({ where: { id: ctx.session.user.id } });
       const amountOfQuestions = Math.random() * (5 - 3) + 3;
-      const availablePointsForQuestions = Math.round(USER_POINTS / amountOfQuestions);
+      const availablePointsForQuestions = Math.round(points / amountOfQuestions);
 
       const availableQuestions = await ctx.prisma.alternativeQuestion.findMany({
         include: {
@@ -73,18 +73,6 @@ export const quizRouter = createTRPCRouter({
         },
         where: {
           subject: "electrical_charges",
-          OR: [
-            {
-              dificulty: {
-                gte: availablePointsForQuestions,
-              },
-            },
-            {
-              dificulty: {
-                lte: availablePointsForQuestions * 2,
-              },
-            },
-          ],
         },
       });
 
@@ -169,6 +157,7 @@ export const quizRouter = createTRPCRouter({
       const questionIdx = quiz.questions.findIndex((q) => q.id === question.id);
       const isCorrect = question.question.answers[input.answer]!.isCorrect;
 
+      let newUserPoints = 0;
       const updateData: Prisma.QuizQuestionUpdateInput = {};
 
       if (question.answeredFirstTry || isCorrect) {
@@ -179,6 +168,12 @@ export const quizRouter = createTRPCRouter({
       if (!question.answeredFirstTry) {
         updateData.answeredFirstTry = true;
         updateData.selectedAnswerFirstTry = input.answer;
+      }
+
+      if (isCorrect) {
+        newUserPoints += question.answeredFirstTry ? question.question.dificulty / 2 : question.question.dificulty;
+      } else {
+        newUserPoints -= question.question.dificulty * 0.85;
       }
 
       await ctx.prisma.quizQuestion.update({
@@ -192,6 +187,21 @@ export const quizRouter = createTRPCRouter({
         data: updateData,
         where: {
           id: input.questionId,
+        },
+      });
+
+      const user = await ctx.prisma.user.findFirstOrThrow({
+        where: {
+          id: ctx.session.user.id,
+        },
+      });
+
+      await ctx.prisma.user.update({
+        data: {
+          points: user.points + newUserPoints,
+        },
+        where: {
+          id: user.id,
         },
       });
 

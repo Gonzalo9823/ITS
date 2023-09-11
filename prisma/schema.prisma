@@ -47,6 +47,7 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
+  points        Float     @default(5.0)
   accounts      Account[]
   sessions      Session[]
   Quiz          Quiz[]
