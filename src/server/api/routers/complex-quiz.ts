@@ -4,105 +4,121 @@ import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import type { Prisma } from "@prisma/client";
 
 export const complexQuizRouter = createTRPCRouter({
-  get: protectedProcedure.query(async ({ ctx }) => {
-    const quiz = await ctx.prisma.complexQuiz.findFirst({
-      include: {
-        complexQuizQuestion: true,
-      },
-      where: {
-        userId: ctx.session.user.id,
-        completedSecondTry: false,
-      },
-    });
+  get: protectedProcedure
+    .input(
+      z
+        .object({
+          subject: z
+            .enum([
+              "coulombs_force_law",
+              "electric_dipole",
+              "electric_field_of_point_charges",
+              "electrical_charges",
+              "field_lines_and_equipotential_surfaces",
+            ])
+            .optional(),
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      const quiz = await ctx.prisma.complexQuiz.findFirst({
+        include: {
+          complexQuizQuestion: true,
+        },
+        where: {
+          userId: ctx.session.user.id,
+          completedSecondTry: false,
+        },
+      });
 
-    if (quiz) {
-      const { id, completedFirstTry, completedSecondTry, complexQuizQuestion, answerHint } = quiz;
+      if (quiz) {
+        const { id, completedFirstTry, completedSecondTry, complexQuizQuestion, answerHint } = quiz;
+
+        return {
+          id,
+          completedFirstTry,
+          completedSecondTry,
+          answerHint,
+          question: {
+            id: complexQuizQuestion[0]!.id,
+            title: complexQuizQuestion[0]!.title,
+            subtitle: complexQuizQuestion[0]!.subtitle,
+            svg: complexQuizQuestion[0]!.svg,
+          },
+        };
+      }
+
+      const { points: availablePointsForQuestions } = await ctx.prisma.user.findFirstOrThrow({ where: { id: ctx.session.user.id } });
+
+      const availableQuestions = await ctx.prisma.complexQuestion.findMany({
+        include: {
+          variables: true,
+        },
+        where: {
+          subject: input?.subject,
+        },
+      });
+
+      availableQuestions.sort(
+        (a, b) =>
+          Math.abs(a.dificulty - availablePointsForQuestions) - Math.abs(b.dificulty - availablePointsForQuestions) || b.dificulty - a.dificulty,
+      );
+
+      const question = availableQuestions[0]!;
+
+      let svg = question.svg;
+      let title = question.title;
+      let subtitle = question.subtitle;
+      let codeToSolveEquation = question.codeToSolveEquation;
+
+      question.variables.forEach((variable) => {
+        const numericVal = randNumber({ min: variable.min ?? undefined, max: variable.max ?? undefined });
+        const val = `${variable.prefix ?? ""}${numericVal}${variable.suffix ?? ""}`;
+
+        svg = svg.replaceAll(variable.varname, val);
+        title = title.replaceAll(variable.varname, val);
+        if (subtitle) subtitle = subtitle.replaceAll(variable.varname, val);
+        codeToSolveEquation = codeToSolveEquation.replaceAll(variable.varname, `${numericVal}`);
+      });
+
+      const answer = eval(codeToSolveEquation) as string;
+
+      const newQuiz = await ctx.prisma.complexQuiz.create({
+        include: {
+          complexQuizQuestion: true,
+        },
+        data: {
+          completedFirstTry: false,
+          completedSecondTry: false,
+          answerHint: question.answerHint,
+          complexQuizQuestion: {
+            create: [
+              {
+                svg,
+                title,
+                subtitle: subtitle ?? "",
+                answer: `${answer}`,
+                complexQuestionId: question.id,
+              },
+            ],
+          },
+          userId: ctx.session.user.id,
+        },
+      });
 
       return {
-        id,
-        completedFirstTry,
-        completedSecondTry,
-        answerHint,
+        id: newQuiz.id,
+        completedFirstTry: newQuiz.completedFirstTry,
+        completedSecondTry: newQuiz.completedSecondTry,
+        answerHint: newQuiz.answerHint,
         question: {
-          id: complexQuizQuestion[0]!.id,
-          title: complexQuizQuestion[0]!.title,
-          subtitle: complexQuizQuestion[0]!.subtitle,
-          svg: complexQuizQuestion[0]!.svg,
+          id: newQuiz.complexQuizQuestion[0]!.id,
+          title: newQuiz.complexQuizQuestion[0]!.title,
+          subtitle: newQuiz.complexQuizQuestion[0]!.subtitle,
+          svg: newQuiz.complexQuizQuestion[0]!.svg,
         },
       };
-    }
-
-    const { points: availablePointsForQuestions } = await ctx.prisma.user.findFirstOrThrow({ where: { id: ctx.session.user.id } });
-
-    const availableQuestions = await ctx.prisma.complexQuestion.findMany({
-      include: {
-        variables: true,
-      },
-      where: {
-        subject: "electrical_charges",
-      },
-    });
-
-    availableQuestions.sort(
-      (a, b) =>
-        Math.abs(a.dificulty - availablePointsForQuestions) - Math.abs(b.dificulty - availablePointsForQuestions) || b.dificulty - a.dificulty,
-    );
-
-    const question = availableQuestions[0]!;
-
-    let svg = question.svg;
-    let title = question.title;
-    let subtitle = question.subtitle;
-    let codeToSolveEquation = question.codeToSolveEquation;
-
-    question.variables.forEach((variable) => {
-      const numericVal = randNumber({ min: variable.min ?? undefined, max: variable.max ?? undefined });
-      const val = `${variable.prefix ?? ""}${numericVal}${variable.suffix ?? ""}`;
-
-      svg = svg.replaceAll(variable.varname, val);
-      title = title.replaceAll(variable.varname, val);
-      if (subtitle) subtitle = subtitle.replaceAll(variable.varname, val);
-      codeToSolveEquation = codeToSolveEquation.replaceAll(variable.varname, `${numericVal}`);
-    });
-
-    const answer = eval(codeToSolveEquation) as string;
-
-    const newQuiz = await ctx.prisma.complexQuiz.create({
-      include: {
-        complexQuizQuestion: true,
-      },
-      data: {
-        completedFirstTry: false,
-        completedSecondTry: false,
-        answerHint: question.answerHint,
-        complexQuizQuestion: {
-          create: [
-            {
-              svg,
-              title,
-              subtitle: subtitle ?? "",
-              answer: `${answer}`,
-              complexQuestionId: question.id,
-            },
-          ],
-        },
-        userId: ctx.session.user.id,
-      },
-    });
-
-    return {
-      id: newQuiz.id,
-      completedFirstTry: newQuiz.completedFirstTry,
-      completedSecondTry: newQuiz.completedSecondTry,
-      answerHint: newQuiz.answerHint,
-      question: {
-        id: newQuiz.complexQuizQuestion[0]!.id,
-        title: newQuiz.complexQuizQuestion[0]!.title,
-        subtitle: newQuiz.complexQuizQuestion[0]!.subtitle,
-        svg: newQuiz.complexQuizQuestion[0]!.svg,
-      },
-    };
-  }),
+    }),
 
   answer: protectedProcedure
     .input(

@@ -16,10 +16,11 @@ export const quizRouter = createTRPCRouter({
               "field_lines_and_equipotential_surfaces",
             ])
             .optional(),
+          amountOfQuestions: z.coerce.number().optional(),
         })
         .optional(),
     )
-    .query(async ({ ctx }) => {
+    .query(async ({ ctx, input }) => {
       const hasActiveQuiz = await ctx.prisma.quiz.findFirst({
         include: {
           questions: {
@@ -64,7 +65,7 @@ export const quizRouter = createTRPCRouter({
 
       // Create Quiz
       const { points } = await ctx.prisma.user.findFirstOrThrow({ where: { id: ctx.session.user.id } });
-      const amountOfQuestions = Math.random() * (5 - 3) + 3;
+      const amountOfQuestions = input?.amountOfQuestions ?? Math.random() * (5 - 3) + 3;
       const availablePointsForQuestions = Math.round(points / amountOfQuestions);
 
       const availableQuestions = await ctx.prisma.alternativeQuestion.findMany({
@@ -72,7 +73,7 @@ export const quizRouter = createTRPCRouter({
           answers: true,
         },
         where: {
-          subject: "electrical_charges",
+          subject: input?.subject,
         },
       });
 

@@ -1,13 +1,24 @@
 import type { NextPage } from "next";
 import { useSession } from "next-auth/react";
 import Navbar from "~/components/Navbar";
+import { getServerAuthSession } from "../server/auth";
+import { type GetServerSideProps } from "next";
 
 import Link from "next/link";
 import { useState } from "react";
 import { api } from "~/utils/api";
 import { useRouter } from "next/router";
 
-const ComplexQuizPage: NextPage = () => {
+const ComplexQuizPage: NextPage<{
+  query: {
+    subject:
+      | "coulombs_force_law"
+      | "electric_dipole"
+      | "electric_field_of_point_charges"
+      | "electrical_charges"
+      | "field_lines_and_equipotential_surfaces";
+  };
+}> = ({ query }) => {
   const router = useRouter();
   const { data: session } = useSession();
 
@@ -16,7 +27,7 @@ const ComplexQuizPage: NextPage = () => {
   const [isEnabled, setIsEnabled] = useState(true);
 
   const trpcContext = api.useContext();
-  const { isLoading, data } = api.complexQuiz.get.useQuery(undefined, { enabled: isEnabled });
+  const { isLoading, data } = api.complexQuiz.get.useQuery({ subject: query.subject }, { enabled: isEnabled });
   const { isLoading: isLoadingSkip, mutateAsync: skipQuestion } = api.complexQuiz.skip.useMutation();
   const { isLoading: isLoadingAnswer, mutateAsync: answerQuestion } = api.complexQuiz.answer.useMutation();
 
@@ -66,7 +77,10 @@ const ComplexQuizPage: NextPage = () => {
             </div>
           </div>
         )}
+
         {data.completedSecondTry && isCorrect ? <p className="font-bold text-green-500">Correcto!</p> : null}
+        {data.completedSecondTry && !isCorrect ? <p className="font-bold text-red-500">Incorrecto!</p> : null}
+
         <div className="flex justify-end space-x-5">
           <button
             type="button"
@@ -95,11 +109,14 @@ const ComplexQuizPage: NextPage = () => {
 
                   setIsCorrect(isCorrect);
                   setSelectedAnswer("");
-                  trpcContext.complexQuiz.get.setData(undefined, {
-                    ...data,
-                    completedFirstTry,
-                    completedSecondTry,
-                  });
+                  trpcContext.complexQuiz.get.setData(
+                    { subject: query.subject },
+                    {
+                      ...data,
+                      completedFirstTry,
+                      completedSecondTry,
+                    },
+                  );
 
                   if (completedSecondTry) {
                     setIsEnabled(false);
@@ -120,3 +137,20 @@ const ComplexQuizPage: NextPage = () => {
 };
 
 export default ComplexQuizPage;
+
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  const session = await getServerAuthSession(ctx);
+
+  if (!session) {
+    return {
+      redirect: {
+        destination: "/",
+        permanent: false,
+      },
+    };
+  }
+
+  return {
+    props: { session, query: ctx.query },
+  };
+};

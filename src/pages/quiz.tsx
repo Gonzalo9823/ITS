@@ -11,19 +11,22 @@ import { api } from "~/utils/api";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 
-const QuestionPage: NextPage = () => {
+const QuestionPage: NextPage<{
+  query: {
+    subject:
+      | "coulombs_force_law"
+      | "electric_dipole"
+      | "electric_field_of_point_charges"
+      | "electrical_charges"
+      | "field_lines_and_equipotential_surfaces";
+    amountOfQuestions: number;
+  };
+}> = ({ query }) => {
   const { data: session } = useSession();
   const router = useRouter();
-  const subject = router.query.subject as
-    | "coulombs_force_law"
-    | "electric_dipole"
-    | "electric_field_of_point_charges"
-    | "electrical_charges"
-    | "field_lines_and_equipotential_surfaces"
-    | undefined;
 
   const [selectedAnswer, setSelectedAnswer] = useState("");
-  const { isLoading, data, refetch } = api.quiz.get.useQuery({ subject });
+  const { isLoading, data, refetch } = api.quiz.get.useQuery({ subject: query.subject, amountOfQuestions: query.amountOfQuestions });
   const { isLoading: isLoadingAnswer, mutateAsync: answerQuestion } = api.quiz.answerQuestion.useMutation();
   const { isLoading: isLoadingSkip, mutateAsync: skipQuestion } = api.quiz.skip.useMutation();
 
@@ -133,6 +136,6 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
   }
 
   return {
-    props: { session },
+    props: { session, query: ctx.query },
   };
 };

@@ -4,6 +4,7 @@ import Subject from "~/components/Subject";
 import { getServerAuthSession } from "../server/auth";
 import { type GetServerSideProps } from "next";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 
 const DashboardPage: NextPage = () => {
   const { data: session } = useSession();
@@ -50,13 +51,68 @@ const DashboardPage: NextPage = () => {
     <div className="space-y-5 px-20 py-4">
       <Navbar user={{ name: session?.user.name ?? "Usuario" }} />
       <section className="space-y-5">
-        <h1 className="text-xl font-bold">Path de Estudio</h1>
-        <div className="grid grid-cols-4 gap-10">
-          {subjects.map((subject) => (
-            <Subject key={subject.id} {...subject} />
-          ))}
+        <h1 className="text-xl font-bold">DEMO</h1>
+        <h1 className="font-bold">
+          DISCLAIMER: SOLO SE PUEDE TENER UN QUIZ DE OPCIÓN MULTIPLE Y UN QUIZ DE DESARROLLO POR TEMA A LA VEZ POR LO QUE PARA COMENZAR UNO NUEVO
+          DEBES HABER TERMINADO EL ANTERIOR.
+        </h1>
+        <div className="flex flex-col">
+          <Link
+            className="hover:underline"
+            href={{
+              pathname: "/quiz",
+              query: {
+                subject: "electrical_charges",
+                amountOfQuestions: 3,
+              },
+            }}
+          >
+            &#8226; Tarea Modulo 1: Opción Multiple 3 Preguntas
+          </Link>
+          <Link
+            className="hover:underline"
+            href={{
+              pathname: "/complex-quiz",
+              query: {
+                subject: "electrical_charges",
+              },
+            }}
+          >
+            &#8226; Tarea Modulo 1: Desarrollo
+          </Link>
+          <Link
+            className="hover:underline"
+            href={{
+              pathname: "/quiz",
+              query: {
+                subject: "coulombs_force_law",
+                amountOfQuestions: 4,
+              },
+            }}
+          >
+            &#8226; Tarea Modulo 2: Opción Multiple 4 Preguntas
+          </Link>
+          <Link
+            className="hover:underline"
+            href={{
+              pathname: "/complex-quiz",
+              query: {
+                subject: "coulombs_force_law",
+              },
+            }}
+          >
+            &#8226; Tarea Modulo 2: Desarrollo
+          </Link>
         </div>
       </section>
+      {/* <section className="space-y-5"> */}
+      {/*   <h1 className="text-xl font-bold">Path de Estudio</h1> */}
+      {/*   <div className="grid grid-cols-4 gap-10"> */}
+      {/*     {subjects.map((subject) => ( */}
+      {/*       <Subject key={subject.id} {...subject} /> */}
+      {/*     ))} */}
+      {/*   </div> */}
+      {/* </section> */}
     </div>
   );
 };
