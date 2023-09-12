@@ -6,22 +6,23 @@ interface MultipleAnswerQuestionProps {
       checked: boolean;
       hint: string;
       isCorrect: boolean;
-      id: string;
+      id: number;
       isWrong: boolean;
       label: string;
       value: string | number;
     }[];
     description?: string;
     disabled?: boolean;
-    id: string;
+    id: number;
     title: string;
   };
   state?: [string, Dispatch<SetStateAction<string>>];
 }
 
-const MultipleAnswerQuestion: FunctionComponent<
-  MultipleAnswerQuestionProps
-> = ({ question: { answers, description, disabled, id, title }, state }) => {
+const MultipleAnswerQuestion: FunctionComponent<MultipleAnswerQuestionProps> = ({
+  question: { answers, description, disabled, id, title },
+  state,
+}) => {
   return (
     <>
       <div>
@@ -38,23 +39,15 @@ const MultipleAnswerQuestion: FunctionComponent<
                   name={`multiple_answer_question_${id}`}
                   id={`answer_${answer.id}`}
                   value={answer.value}
-                  className={`${
-                    answer.isCorrect
-                      ? "accent-green-500 disabled:accent-green-500"
-                      : ""
-                  } ${
-                    answer.isWrong
-                      ? "accent-red-500 disabled:accent-red-500"
-                      : ""
+                  className={`${answer.isCorrect ? "accent-green-500 disabled:accent-green-500" : ""} ${
+                    answer.isWrong ? "accent-red-500 disabled:accent-red-500" : ""
                   }`}
                   disabled={disabled}
                   checked={answer.checked}
                   onChange={(evt) => state![1](evt.currentTarget.value)}
                 />
                 <label
-                  className={`${answer.isCorrect ? "text-green-500" : ""} ${
-                    answer.isWrong ? "text-red-500" : ""
-                  }`}
+                  className={`${answer.isCorrect ? "text-green-500" : ""} ${answer.isWrong ? "text-red-500" : ""}`}
                   htmlFor={`answer_${answer.id}`}
                 >
                   {answer.label}

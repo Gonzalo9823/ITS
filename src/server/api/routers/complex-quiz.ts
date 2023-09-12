@@ -123,7 +123,7 @@ export const complexQuizRouter = createTRPCRouter({
   answer: protectedProcedure
     .input(
       z.object({
-        id: z.string(),
+        id: z.coerce.number(),
         answer: z.string(),
       }),
     )
@@ -170,7 +170,7 @@ export const complexQuizRouter = createTRPCRouter({
   skip: protectedProcedure
     .input(
       z.object({
-        id: z.string(),
+        id: z.coerce.number(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

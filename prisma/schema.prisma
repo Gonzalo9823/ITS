@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below
   // Further reading:
   // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
@@ -16,7 +16,7 @@ datasource db {
 
 // Necessary for Next auth
 model Account {
-  id                String  @id @default(cuid())
+  id                Int     @id @default(autoincrement())
   userId            String
   type              String
   provider          String
@@ -34,7 +34,7 @@ model Account {
 }
 
 model Session {
-  id           String   @id @default(cuid())
+  id           Int      @id @default(autoincrement())
   sessionToken String   @unique
   userId       String
   expires      DateTime
@@ -63,7 +63,7 @@ model VerificationToken {
 }
 
 model AlternativeQuestion {
-  id        String              @id @default(cuid())
+  id        Int                 @id @default(autoincrement())
   title     String
   subtitle  String?
   dificulty Int
@@ -73,16 +73,16 @@ model AlternativeQuestion {
 }
 
 model AlternativeAnswer {
-  id                    String              @id @default(cuid())
+  id                    Int                 @id @default(autoincrement())
   value                 String
   hint                  String?
   isCorrect             Boolean
   alternativeQuestion   AlternativeQuestion @relation(fields: [alternativeQuestionId], references: [id])
-  alternativeQuestionId String
+  alternativeQuestionId Int
 }
 
 model ComplexQuestion {
-  id                  String                    @id @default(cuid())
+  id                  Int                       @id @default(autoincrement())
   title               String
   subtitle            String?
   dificulty           Int
@@ -95,18 +95,18 @@ model ComplexQuestion {
 }
 
 model ComplexQuestionVariable {
-  id                String           @id @default(cuid())
+  id                Int             @id @default(autoincrement())
   varname           String
   min               Int?
   max               Int?
   prefix            String?
   suffix            String?
-  complexQuestion   ComplexQuestion? @relation(fields: [complexQuestionId], references: [id])
-  complexQuestionId String?
+  complexQuestion   ComplexQuestion @relation(fields: [complexQuestionId], references: [id])
+  complexQuestionId Int
 }
 
 model Quiz {
-  id                 String         @id @default(cuid())
+  id                 Int            @id @default(autoincrement())
   amountOfQuestions  Int
   completedFirstTry  Boolean
   completedSecondTry Boolean
@@ -116,11 +116,11 @@ model Quiz {
 }
 
 model QuizQuestion {
-  id                      String              @id @default(cuid())
+  id                      Int                 @id @default(autoincrement())
   quiz                    Quiz                @relation(fields: [quizId], references: [id])
-  quizId                  String
+  quizId                  Int
   question                AlternativeQuestion @relation(fields: [questionId], references: [id])
-  questionId              String
+  questionId              Int
   skipped                 Boolean
   answeredFirstTry        Boolean
   selectedAnswerFirstTry  Int?
@@ -129,7 +129,7 @@ model QuizQuestion {
 }
 
 model ComplexQuiz {
-  id                  String                @id @default(cuid())
+  id                  Int                   @id @default(autoincrement())
   completedFirstTry   Boolean
   completedSecondTry  Boolean
   user                User                  @relation(fields: [userId], references: [id])
@@ -139,11 +139,11 @@ model ComplexQuiz {
 }
 
 model ComplexQuizQuestion {
-  id                String          @id @default(cuid())
+  id                Int             @id @default(autoincrement())
   complexQuestion   ComplexQuestion @relation(fields: [complexQuestionId], references: [id])
   complexQuiz       ComplexQuiz     @relation(fields: [complexQuizId], references: [id])
-  complexQuizId     String
-  complexQuestionId String
+  complexQuizId     Int
+  complexQuestionId Int
   svg               String
   title             String
   subtitle          String

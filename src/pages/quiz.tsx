@@ -55,7 +55,7 @@ const QuestionPage: NextPage<{
               disabled: isLoadingAnswer || isLoadingSkip,
               description: data.question.subtitle ?? undefined,
               answers: data.question.answers.map((answer) => ({
-                checked: selectedAnswer === answer.id,
+                checked: selectedAnswer === `${answer.id}`,
                 hint: answer.hint ?? "",
                 isCorrect: false,
                 id: answer.id,
@@ -99,7 +99,7 @@ const QuestionPage: NextPage<{
                 const { completed } = await answerQuestion({
                   id: data.id,
                   questionId: data.question.id,
-                  answer: data.question.answers.findIndex(({ id }) => id === selectedAnswer),
+                  answer: data.question.answers.findIndex(({ id }) => `${id}` === selectedAnswer),
                 });
 
                 if (completed) {

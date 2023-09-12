@@ -31,6 +31,11 @@ export const quizRouter = createTRPCRouter({
                 },
               },
             },
+            orderBy: {
+              question: {
+                id: "asc",
+              },
+            },
           },
         },
         where: {
@@ -93,6 +98,11 @@ export const quizRouter = createTRPCRouter({
                 },
               },
             },
+            orderBy: {
+              question: {
+                id: "asc",
+              },
+            },
           },
         },
         data: {
@@ -130,8 +140,8 @@ export const quizRouter = createTRPCRouter({
   answerQuestion: protectedProcedure
     .input(
       z.object({
-        id: z.string(),
-        questionId: z.string(),
+        id: z.coerce.number(),
+        questionId: z.coerce.number(),
         answer: z.number(),
       }),
     )
@@ -144,6 +154,11 @@ export const quizRouter = createTRPCRouter({
                 include: {
                   answers: true,
                 },
+              },
+            },
+            orderBy: {
+              question: {
+                id: "asc",
               },
             },
           },
@@ -270,8 +285,8 @@ export const quizRouter = createTRPCRouter({
   skip: protectedProcedure
     .input(
       z.object({
-        id: z.string(),
-        questionId: z.string(),
+        id: z.coerce.number(),
+        questionId: z.coerce.number(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -283,6 +298,11 @@ export const quizRouter = createTRPCRouter({
                 include: {
                   answers: true,
                 },
+              },
+            },
+            orderBy: {
+              question: {
+                id: "asc",
               },
             },
           },
@@ -389,6 +409,11 @@ export const quizRouter = createTRPCRouter({
               include: {
                 answers: true,
               },
+            },
+          },
+          orderBy: {
+            question: {
+              id: "asc",
             },
           },
         },
