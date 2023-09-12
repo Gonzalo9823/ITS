@@ -102,6 +102,7 @@ const QuestionPage: NextPage = () => {
                 if (completed) {
                   await router.push("/quiz-summary");
                 } else {
+                  setSelectedAnswer("");
                   await refetch();
                 }
               } catch (err) {

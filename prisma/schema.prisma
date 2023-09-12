@@ -42,15 +42,16 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String        @id @default(cuid())
   name          String?
-  email         String?   @unique
+  email         String?       @unique
   emailVerified DateTime?
   image         String?
-  points        Float     @default(5.0)
+  points        Float         @default(5.0)
   accounts      Account[]
   sessions      Session[]
   Quiz          Quiz[]
+  ComplexQuiz   ComplexQuiz[]
 }
 
 model VerificationToken {
@@ -80,6 +81,30 @@ model AlternativeAnswer {
   alternativeQuestionId String
 }
 
+model ComplexQuestion {
+  id                  String                    @id @default(cuid())
+  title               String
+  subtitle            String?
+  dificulty           Int
+  subject             String
+  codeToSolveEquation String
+  svg                 String
+  variables           ComplexQuestionVariable[]
+  ComplexQuizQuestion ComplexQuizQuestion[]
+  answerHint          String?
+}
+
+model ComplexQuestionVariable {
+  id                String           @id @default(cuid())
+  varname           String
+  min               Int?
+  max               Int?
+  prefix            String?
+  suffix            String?
+  complexQuestion   ComplexQuestion? @relation(fields: [complexQuestionId], references: [id])
+  complexQuestionId String?
+}
+
 model Quiz {
   id                 String         @id @default(cuid())
   amountOfQuestions  Int
@@ -101,4 +126,26 @@ model QuizQuestion {
   selectedAnswerFirstTry  Int?
   answeredSecondTry       Boolean
   selectedAnswerSecondTry Int?
+}
+
+model ComplexQuiz {
+  id                  String                @id @default(cuid())
+  completedFirstTry   Boolean
+  completedSecondTry  Boolean
+  user                User                  @relation(fields: [userId], references: [id])
+  userId              String
+  complexQuizQuestion ComplexQuizQuestion[]
+  answerHint          String?
+}
+
+model ComplexQuizQuestion {
+  id                String          @id @default(cuid())
+  complexQuestion   ComplexQuestion @relation(fields: [complexQuestionId], references: [id])
+  complexQuiz       ComplexQuiz     @relation(fields: [complexQuizId], references: [id])
+  complexQuizId     String
+  complexQuestionId String
+  svg               String
+  title             String
+  subtitle          String
+  answer            String
 }
