@@ -198,7 +198,7 @@ export const quizRouter = createTRPCRouter({
 
       await ctx.prisma.user.update({
         data: {
-          points: user.points + newUserPoints,
+          points: Math.max(0, user.points + newUserPoints),
         },
         where: {
           id: user.id,
@@ -207,9 +207,19 @@ export const quizRouter = createTRPCRouter({
 
       if (!quiz.completedFirstTry && questionIdx + 1 === quiz.amountOfQuestions) {
         const allCorrect = quiz.questions.every((question) => {
-          if (question.id === input.questionId && isCorrect) return true;
-          if (question.skipped) return true;
-          return question.selectedAnswerFirstTry ? question.question.answers[question.selectedAnswerFirstTry]?.isCorrect : false;
+          if (question.id === input.questionId) {
+            return isCorrect;
+          }
+
+          if (question.skipped) {
+            return true;
+          }
+
+          if (question.selectedAnswerFirstTry !== null) {
+            return question.question.answers[question.selectedAnswerFirstTry]?.isCorrect;
+          }
+
+          return false;
         });
 
         const updateQuizData: Prisma.QuizUpdateInput = {
@@ -309,7 +319,7 @@ export const quizRouter = createTRPCRouter({
 
       await ctx.prisma.user.update({
         data: {
-          points: user.points - question.question.dificulty,
+          points: Math.max(0, user.points - question.question.dificulty),
         },
         where: {
           id: user.id,
@@ -320,7 +330,7 @@ export const quizRouter = createTRPCRouter({
         const allCorrect = quiz.questions.every((question) => {
           if (question.id === input.questionId) return true;
           if (question.skipped) return true;
-          return question.selectedAnswerFirstTry ? question.question.answers[question.selectedAnswerFirstTry]?.isCorrect : false;
+          return question.selectedAnswerFirstTry !== null ? question.question.answers[question.selectedAnswerFirstTry]?.isCorrect : false;
         });
 
         const updateQuizData: Prisma.QuizUpdateInput = {
