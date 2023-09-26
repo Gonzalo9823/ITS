@@ -9,6 +9,22 @@ export const teacherRouter = createTRPCRouter({
         name: true,
         email: true,
         points: true,
+        subjects: {
+          select: {
+            id: true,
+            subject: {
+              select: {
+                spanishName: true,
+              },
+            },
+            completed: true,
+          },
+          orderBy: {
+            subject: {
+              id: "asc",
+            },
+          },
+        },
       },
       where: {
         role: "student",
