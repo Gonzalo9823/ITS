@@ -1,6 +1,7 @@
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { type GetServerSidePropsContext } from "next";
-import { getServerSession, type DefaultSession, type NextAuthOptions } from "next-auth";
+import { getServerSession, type DefaultSession, type NextAuthOptions, type Awaitable } from "next-auth";
+import type { AdapterUser } from "next-auth/adapters";
 import GoogleProvider from "next-auth/providers/google";
 
 import { env } from "~/env.mjs";
@@ -16,15 +17,13 @@ declare module "next-auth" {
   interface Session extends DefaultSession {
     user: DefaultSession["user"] & {
       id: string;
-      // ...other properties
-      // role: UserRole;
+      role: "student" | "teacher";
     };
   }
 
-  // interface User {
-  //   // ...other properties
-  //   // role: UserRole;
-  // }
+  interface User {
+    role: "student" | "teacher";
+  }
 }
 
 /**
@@ -39,10 +38,28 @@ export const authOptions: NextAuthOptions = {
       user: {
         ...session.user,
         id: user.id,
+        role: user.role,
       },
     }),
   },
-  adapter: PrismaAdapter(prisma),
+  adapter: {
+    ...PrismaAdapter(prisma),
+    createUser: async (data) => {
+      const user = await prisma.user.create({ data });
+      const subjects = await prisma.subject.findMany();
+
+      for (const subject of subjects) {
+        await prisma.userSubject.create({
+          data: {
+            userId: user.id,
+            subjectId: subject.id,
+          },
+        });
+      }
+
+      return user as Awaitable<AdapterUser>;
+    },
+  },
   providers: [
     GoogleProvider({
       clientId: env.GOOGLE_CLIENT_ID,

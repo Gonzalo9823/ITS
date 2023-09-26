@@ -3,29 +3,35 @@ import type { FunctionComponent } from "react";
 
 interface SubjectInterface {
   id: number;
-  name: string;
+  spanishName: string;
   image: string;
   completed: boolean;
-  subject:
-    | "coulombs_force_law"
-    | "electric_dipole"
-    | "electric_field_of_point_charges"
-    | "electrical_charges"
-    | "field_lines_and_equipotential_surfaces";
+  name: string;
+  isTeacher?: boolean;
 }
 
-const Subject: FunctionComponent<SubjectInterface> = ({ name, image, subject }) => {
+const Subject: FunctionComponent<SubjectInterface> = ({ spanishName, image, name, isTeacher }) => {
   const router = useRouter();
+
+  const handleOnClick = async () => {
+    if (isTeacher) {
+      await router.push(`/teacher/subject/${name}`);
+      return;
+    }
+
+    await router.push("/quiz", { pathname: "/quiz", query: { subject: name } });
+  };
 
   return (
     <div
-      className="col-span-1 flex h-60 cursor-pointer items-center justify-center rounded-lg border border-gray-400 bg-contain bg-center bg-no-repeat bg-blend-overlay"
+      className="relative col-span-1 flex h-60 cursor-pointer items-center justify-center rounded-lg border border-gray-400 bg-contain bg-center bg-no-repeat bg-blend-overlay"
       style={{
         backgroundImage: `URL(${image}), linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4))`,
       }}
-      onClick={() => router.push("/quiz", { pathname: "/quiz", query: { subject } })}
+      onClick={handleOnClick}
     >
-      <h1 className="text-center text-xl font-bold text-white">{name}</h1>
+      <h1 className="text-center text-xl font-bold text-white">{spanishName}</h1>
+      {/* <div className="absolute inset-0 m-auto h-5 w-5 bg-red-50" /> */}
     </div>
   );
 };

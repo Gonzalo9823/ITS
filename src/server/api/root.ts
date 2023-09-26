@@ -1,6 +1,8 @@
 import { createTRPCRouter } from "~/server/api/trpc";
 import { quizRouter } from "~/server/api/routers/quiz";
 import { complexQuizRouter } from "~/server/api/routers/complex-quiz";
+import { subjectRouter } from "~/server/api/routers/subject";
+import { teacherRouter } from "~/server/api/routers/teacher";
 
 /**
  * This is the primary router for your server.
@@ -10,6 +12,8 @@ import { complexQuizRouter } from "~/server/api/routers/complex-quiz";
 export const appRouter = createTRPCRouter({
   quiz: quizRouter,
   complexQuiz: complexQuizRouter,
+  subject: subjectRouter,
+  teacher: teacherRouter,
 });
 
 // export type definition of API
