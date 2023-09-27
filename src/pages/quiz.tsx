@@ -14,11 +14,11 @@ import { useSession } from "next-auth/react";
 const QuestionPage: NextPage<{
   query: {
     subject:
+      | "electric_charges"
       | "coulombs_force_law"
-      | "electric_dipole"
       | "electric_field_of_point_charges"
-      | "electrical_charges"
-      | "field_lines_and_equipotential_surfaces";
+      | "field_lines_and_equipotential_surfaces"
+      | "electric_dipole";
     amountOfQuestions: number;
   };
 }> = ({ query }) => {
@@ -34,7 +34,7 @@ const QuestionPage: NextPage<{
 
   return (
     <div className="space-y-5 px-20 py-4">
-      <Navbar user={{ name: session?.user.name ?? "Usuario" }} />
+      <Navbar user={{ name: session?.user.name ?? "", role: session?.user.role ?? "student" }} />
       <section className="space-y-4">
         <div className="flex justify-start">
           <Link

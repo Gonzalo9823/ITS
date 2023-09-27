@@ -6,6 +6,7 @@ import { type GetServerSideProps } from "next";
 import { useSession } from "next-auth/react";
 import { api } from "~/utils/api";
 import { ArrowRightIcon } from "@heroicons/react/20/solid";
+import { Fragment } from "react";
 
 const DashboardPage: NextPage = () => {
   const { data: session } = useSession();
@@ -20,12 +21,12 @@ const DashboardPage: NextPage = () => {
         <h1 className="text-xl font-bold">Path de Estudio</h1>
         <div className="grid grid-cols-12 gap-x-10 gap-y-28">
           {data.map(({ id, completed, subject, canView }) => (
-            <>
+            <Fragment key={id}>
               <div className="col-span-1 flex items-center justify-center">
                 <ArrowRightIcon />
               </div>
-              <Subject key={id} completed={completed} canView={canView} {...subject} />
-            </>
+              <Subject completed={completed} canView={canView} {...subject} />
+            </Fragment>
           ))}
         </div>
       </section>

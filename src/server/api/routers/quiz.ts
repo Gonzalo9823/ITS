@@ -3,17 +3,43 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const quizRouter = createTRPCRouter({
+  hasActiveQuiz: protectedProcedure.query(async ({ ctx }) => {
+    const hasActiveQuiz = await ctx.prisma.quiz.findFirst({
+      include: {
+        questions: {
+          include: {
+            question: {
+              include: {
+                answers: true,
+              },
+            },
+          },
+          orderBy: {
+            question: {
+              id: "asc",
+            },
+          },
+        },
+      },
+      where: {
+        userId: ctx.session.user.id,
+        completedSecondTry: false,
+      },
+    });
+
+    return Boolean(hasActiveQuiz);
+  }),
   get: protectedProcedure
     .input(
       z
         .object({
           subject: z
             .enum([
+              "electric_charges",
               "coulombs_force_law",
-              "electric_dipole",
               "electric_field_of_point_charges",
-              "electrical_charges",
               "field_lines_and_equipotential_surfaces",
+              "electric_dipole",
             ])
             .optional(),
           amountOfQuestions: z.coerce.number().optional(),
@@ -192,7 +218,7 @@ export const quizRouter = createTRPCRouter({
         newUserPoints -= question.question.dificulty * 0.85;
       }
 
-      await ctx.prisma.quizQuestion.update({
+      const alternativeQuestion = await ctx.prisma.quizQuestion.update({
         include: {
           question: {
             include: {
@@ -205,6 +231,20 @@ export const quizRouter = createTRPCRouter({
           id: input.questionId,
         },
       });
+
+      if (updateData.answeredSecondTry) {
+        await ctx.prisma.userSubject.updateMany({
+          data: {
+            completed: true,
+          },
+          where: {
+            subject: {
+              name: alternativeQuestion.question.subject,
+            },
+            userId: ctx.session.user.id,
+          },
+        });
+      }
 
       const user = await ctx.prisma.user.findFirstOrThrow({
         where: {
@@ -316,7 +356,7 @@ export const quizRouter = createTRPCRouter({
       const question = quiz.questions.find(({ id }) => id === input.questionId)!;
       const questionIdx = quiz.questions.findIndex((q) => q.id === question.id);
 
-      await ctx.prisma.quizQuestion.update({
+      const alternativeQuiz = await ctx.prisma.quizQuestion.update({
         include: {
           question: {
             include: {
@@ -370,6 +410,20 @@ export const quizRouter = createTRPCRouter({
             id: input.id,
           },
         });
+
+        if (updateQuizData.completedSecondTry) {
+          await ctx.prisma.userSubject.updateMany({
+            data: {
+              completed: true,
+            },
+            where: {
+              subject: {
+                name: alternativeQuiz.question.subject,
+              },
+              userId: ctx.session.user.id,
+            },
+          });
+        }
 
         return {
           completed: true,

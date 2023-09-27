@@ -12,11 +12,11 @@ import { useRouter } from "next/router";
 const ComplexQuizPage: NextPage<{
   query: {
     subject:
+      | "electric_charges"
       | "coulombs_force_law"
-      | "electric_dipole"
       | "electric_field_of_point_charges"
-      | "electrical_charges"
-      | "field_lines_and_equipotential_surfaces";
+      | "field_lines_and_equipotential_surfaces"
+      | "electric_dipole";
   };
 }> = ({ query }) => {
   const router = useRouter();
@@ -35,17 +35,18 @@ const ComplexQuizPage: NextPage<{
 
   return (
     <div className="space-y-5 px-20 py-4">
-      <Navbar user={{ name: session?.user.name ?? "Usuario" }} />
+      <Navbar user={{ name: session?.user.name ?? "", role: session?.user.role ?? "student" }} />
       <section className="space-y-4">
-        <div className="flex justify-start">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold">Quiz</h1>
+
           <Link
             href="/dashboard"
-            className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:bg-gray-400"
+            className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:bg-gray-100"
           >
-            Volver a Dashboard
+            Volver
           </Link>
         </div>
-        <h1 className="text-xl font-bold">Quiz</h1>
         <div className="space-y-9">
           <div>
             <h1 className="text-lg font-bold">{data.question.title}</h1>

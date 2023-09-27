@@ -6,6 +6,7 @@ import { api } from "~/utils/api";
 import { getServerAuthSession } from "~/server/auth";
 import { useRouter } from "next/router";
 import { CheckIcon } from "@heroicons/react/20/solid";
+import { useEffect, useState } from "react";
 
 const DashboardPage: NextPage<{
   subject:
@@ -17,11 +18,33 @@ const DashboardPage: NextPage<{
 }> = ({ subject }) => {
   const router = useRouter();
   const { data: session } = useSession();
+  const [showContent, setShowContent] = useState(false);
 
-  const { isLoading, data, refetch } = api.subject.get.useQuery({ subject });
   const { isLoading: isLoadingComplete, mutateAsync: completeContent } = api.subject.completeContent.useMutation();
 
-  if (isLoading || !data) return <h1>Loading...</h1>;
+  const { isLoading: isLoadingSubject, data, refetch } = api.subject.get.useQuery({ subject });
+  const { isLoading: isLoadingHasActiveQuiz, data: hasActiveQuiz } = api.quiz.hasActiveQuiz.useQuery();
+  const { isLoading: isLoadingHasActiveComplexQuiz, data: hasActiveComplexQuiz } = api.complexQuiz.hasActiveQuiz.useQuery();
+
+  const isLoading = isLoadingSubject || isLoadingHasActiveQuiz || isLoadingHasActiveComplexQuiz;
+
+  useEffect(() => {
+    const goToQuiz = async () => {
+      if (hasActiveQuiz) {
+        await router.push("/quiz").catch(() => null);
+      }
+
+      if (hasActiveComplexQuiz) {
+        await router.push("/complex-quiz").catch(() => null);
+      }
+
+      setShowContent(true);
+    };
+
+    void goToQuiz();
+  }, [router, hasActiveQuiz, hasActiveComplexQuiz]);
+
+  if (isLoading || !data || !showContent) return <h1>Loading...</h1>;
 
   return (
     <div className="space-y-5 px-20 py-4">
@@ -59,12 +82,12 @@ const DashboardPage: NextPage<{
             className="max-w-fit rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:bg-gray-100"
             onClick={async () => {
               try {
-                const completed = await completeContent({
+                const response = await completeContent({
                   contentId: data.contents[0]!.id,
                 });
 
-                if (completed) {
-                  await router.push("/dashboard");
+                if (response.changeRoute) {
+                  await router.push(response.goTo);
                 } else {
                   await refetch();
                 }

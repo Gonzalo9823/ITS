@@ -4,17 +4,30 @@ import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import type { Prisma } from "@prisma/client";
 
 export const complexQuizRouter = createTRPCRouter({
+  hasActiveQuiz: protectedProcedure.query(async ({ ctx }) => {
+    const quiz = await ctx.prisma.complexQuiz.findFirst({
+      include: {
+        complexQuizQuestion: true,
+      },
+      where: {
+        userId: ctx.session.user.id,
+        completedSecondTry: false,
+      },
+    });
+
+    return Boolean(quiz);
+  }),
   get: protectedProcedure
     .input(
       z
         .object({
           subject: z
             .enum([
+              "electric_charges",
               "coulombs_force_law",
-              "electric_dipole",
               "electric_field_of_point_charges",
-              "electrical_charges",
               "field_lines_and_equipotential_surfaces",
+              "electric_dipole",
             ])
             .optional(),
         })
@@ -153,12 +166,33 @@ export const complexQuizRouter = createTRPCRouter({
       }
 
       const updatedQuiz = await ctx.prisma.complexQuiz.update({
+        include: {
+          complexQuizQuestion: {
+            include: {
+              complexQuestion: true,
+            },
+          },
+        },
         data: updateData,
         where: {
           id: input.id,
           userId: ctx.session.user.id,
         },
       });
+
+      if (updateData.completedSecondTry) {
+        await ctx.prisma.userSubject.updateMany({
+          data: {
+            completed: true,
+          },
+          where: {
+            subject: {
+              name: updatedQuiz.complexQuizQuestion[0]!.complexQuestion.subject,
+            },
+            userId: ctx.session.user.id,
+          },
+        });
+      }
 
       return {
         isCorrect,
@@ -188,6 +222,18 @@ export const complexQuizRouter = createTRPCRouter({
         },
         where: {
           id: input.id,
+          userId: ctx.session.user.id,
+        },
+      });
+
+      await ctx.prisma.userSubject.updateMany({
+        data: {
+          completed: true,
+        },
+        where: {
+          subject: {
+            name: question.complexQuizQuestion[0]!.complexQuestion.subject,
+          },
           userId: ctx.session.user.id,
         },
       });

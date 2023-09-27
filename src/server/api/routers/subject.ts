@@ -144,18 +144,13 @@ export const subjectRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const alreadyCompletedContent = await ctx.prisma.completedUserSubjectContent.findFirst({
-        where: {
-          userId: ctx.session.user.id,
-          subjectContentId: input.contentId,
-        },
-      });
-
-      if (alreadyCompletedContent) return false;
-
       const content = await ctx.prisma.completedUserSubjectContent.create({
         include: {
-          contect: true,
+          contect: {
+            include: {
+              subject: true,
+            },
+          },
         },
         data: {
           userId: ctx.session.user.id,
@@ -177,19 +172,14 @@ export const subjectRouter = createTRPCRouter({
       });
 
       if (subjectContents.contents.at(-1)?.id === input.contentId) {
-        await ctx.prisma.userSubject.updateMany({
-          data: {
-            completed: true,
-          },
-          where: {
-            subjectId: content.contect.subjectId,
-            userId: ctx.session.user.id,
-          },
-        });
+        const isComplex = Math.random() < 0.5;
 
-        return true;
+        return {
+          changeRoute: true,
+          goTo: isComplex ? `/complex-quiz?subject=${content.contect.subject.name}` : `/quiz?subject=${content.contect.subject.name}`,
+        } as const;
       }
 
-      return false;
+      return { changeRoute: false } as const;
     }),
 });
