@@ -9,7 +9,7 @@ const TeacherPage: NextPage = () => {
   const { data: session } = useSession();
 
   const { isLoading: isLoadingUsers, data: users } = api.teacher.getUsers.useQuery();
-  const { isLoading: isLoadingSubjects, data: subjects } = api.subject.get.useQuery();
+  const { isLoading: isLoadingSubjects, data: subjects } = api.teacher.getSubjects.useQuery();
 
   if (isLoadingUsers || isLoadingSubjects) return <h1>Loading...</h1>;
 

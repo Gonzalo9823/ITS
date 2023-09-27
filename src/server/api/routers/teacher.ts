@@ -2,6 +2,21 @@ import { z } from "zod";
 import { createTRPCRouter, teacherProcedure } from "~/server/api/trpc";
 
 export const teacherRouter = createTRPCRouter({
+  getSubjects: teacherProcedure.query(async ({ ctx }) => {
+    const subjects = await ctx.prisma.userSubject.findMany({
+      include: {
+        subject: true,
+      },
+      where: {
+        userId: ctx.session.user.id,
+      },
+      orderBy: {
+        subjectId: "asc",
+      },
+    });
+
+    return subjects;
+  }),
   getUsers: teacherProcedure.query(async ({ ctx }) => {
     const users = await ctx.prisma.user.findMany({
       select: {
