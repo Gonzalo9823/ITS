@@ -55,6 +55,7 @@ export const teacherRouter = createTRPCRouter({
         },
         where: {
           subject: input.subject,
+          deleted: false,
         },
       });
 
@@ -66,6 +67,7 @@ export const teacherRouter = createTRPCRouter({
         },
         where: {
           subject: input.subject,
+          deleted: false,
         },
       });
 
@@ -257,6 +259,28 @@ export const teacherRouter = createTRPCRouter({
       }
     }),
 
+  deleteAlternativeQuestion: teacherProcedure
+    .input(
+      z.object({
+        id: z.number({ invalid_type_error: "Id invalido" }),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { id } = input;
+
+      await ctx.prisma.alternativeQuestion.update({
+        include: {
+          answers: true,
+        },
+        data: {
+          deleted: true,
+        },
+        where: {
+          id,
+        },
+      });
+    }),
+
   getComplexQuestion: teacherProcedure.input(z.object({ id: z.number({ invalid_type_error: "Id invalido" }) })).query(async ({ ctx, input }) => {
     const question = await ctx.prisma.complexQuestion.findFirstOrThrow({
       include: {
@@ -415,5 +439,24 @@ export const teacherRouter = createTRPCRouter({
           },
         });
       }
+    }),
+
+  deleteComplexQuestion: teacherProcedure
+    .input(
+      z.object({
+        id: z.number({ invalid_type_error: "Id invalido" }),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { id } = input;
+
+      await ctx.prisma.complexQuestion.update({
+        data: {
+          deleted: true,
+        },
+        where: {
+          id,
+        },
+      });
     }),
 });

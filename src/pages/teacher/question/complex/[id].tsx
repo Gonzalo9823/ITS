@@ -13,6 +13,9 @@ const ComplexQuestionPage: NextPage<{ id: string }> = ({ id }) => {
   const hasData = useRef<boolean>(false);
 
   const { isLoading: isLoadingUpdate, mutateAsync: updateQuestion, error, isSuccess } = api.teacher.updateComplexQuestion.useMutation();
+  const { isLoading: isLoadingDelete, mutateAsync: deleteQuestion } = api.teacher.deleteComplexQuestion.useMutation();
+
+  const isLoadingMutation = isLoadingUpdate || isLoadingDelete;
 
   const { isLoading, data: question } = api.teacher.getComplexQuestion.useQuery(
     { id: parseInt(id) },
@@ -73,7 +76,11 @@ const ComplexQuestionPage: NextPage<{ id: string }> = ({ id }) => {
         {error?.data?.zodError ? (
           <div className="rounded-md bg-red-500 p-6">
             <ul>
-              {Children.toArray(Object.values(error.data.zodError.fieldErrors).flatMap((error) => <li className="text-white">&#8226; {error}</li>))}
+              {Children.toArray(
+                Object.values(error.data.zodError.fieldErrors).flatMap(
+                  (errors) => errors?.map((error) => <li className="text-white">&#8226; {error}</li>),
+                ),
+              )}
             </ul>
           </div>
         ) : null}
@@ -101,7 +108,7 @@ const ComplexQuestionPage: NextPage<{ id: string }> = ({ id }) => {
                 type="text"
                 name="title"
                 id="title"
-                disabled={isLoadingUpdate}
+                disabled={isLoadingMutation}
                 className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 sm:text-sm sm:leading-6"
                 value={title}
                 onChange={(evt) => setTitle(evt.target.value)}
@@ -118,7 +125,7 @@ const ComplexQuestionPage: NextPage<{ id: string }> = ({ id }) => {
                 type="text"
                 name="sub_title"
                 id="sub_title"
-                disabled={isLoadingUpdate}
+                disabled={isLoadingMutation}
                 className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 sm:text-sm sm:leading-6"
                 value={subtitle}
                 onChange={(evt) => setSubtitle(evt.target.value)}
@@ -135,7 +142,7 @@ const ComplexQuestionPage: NextPage<{ id: string }> = ({ id }) => {
                 type="number"
                 name="dificulty"
                 id="dificulty"
-                disabled={isLoadingUpdate}
+                disabled={isLoadingMutation}
                 className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 sm:text-sm sm:leading-6"
                 value={dificulty}
                 onChange={(evt) => setDificulty(evt.target.value)}
@@ -151,7 +158,7 @@ const ComplexQuestionPage: NextPage<{ id: string }> = ({ id }) => {
               <textarea
                 name="svg"
                 id="svg"
-                disabled={isLoadingUpdate}
+                disabled={isLoadingMutation}
                 className="block w-1/2 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 sm:text-sm sm:leading-6"
                 value={svg}
                 onChange={(evt) => setSvg(evt.target.value)}
@@ -166,7 +173,7 @@ const ComplexQuestionPage: NextPage<{ id: string }> = ({ id }) => {
             <div className="flex items-center justify-between">
               <h1 className="block text-sm font-medium leading-6 text-gray-900">Variables ({variables.length})</h1>
               <button
-                disabled={isLoadingUpdate}
+                disabled={isLoadingMutation}
                 className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:bg-gray-100"
                 onClick={() =>
                   setVariables((variables) => [
@@ -197,7 +204,7 @@ const ComplexQuestionPage: NextPage<{ id: string }> = ({ id }) => {
                       type="text"
                       name={`title-${variable.id}`}
                       id={`title-${variable.id}`}
-                      disabled={isLoadingUpdate}
+                      disabled={isLoadingMutation}
                       className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 sm:text-sm sm:leading-6"
                       value={variable.varname}
                       onChange={(evt) =>
@@ -215,7 +222,7 @@ const ComplexQuestionPage: NextPage<{ id: string }> = ({ id }) => {
                       type="number"
                       name={`hint-${variable.id}`}
                       id={`hint-${variable.id}`}
-                      disabled={isLoadingUpdate}
+                      disabled={isLoadingMutation}
                       className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 sm:text-sm sm:leading-6"
                       value={variable.min ?? ""}
                       onChange={(evt) =>
@@ -237,7 +244,7 @@ const ComplexQuestionPage: NextPage<{ id: string }> = ({ id }) => {
                       type="number"
                       name={`max-${variable.id}`}
                       id={`max-${variable.id}`}
-                      disabled={isLoadingUpdate}
+                      disabled={isLoadingMutation}
                       className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 sm:text-sm sm:leading-6"
                       value={variable.max ?? ""}
                       onChange={(evt) =>
@@ -259,7 +266,7 @@ const ComplexQuestionPage: NextPage<{ id: string }> = ({ id }) => {
                       type="text"
                       name={`prefix-${variable.id}`}
                       id={`prefix-${variable.id}`}
-                      disabled={isLoadingUpdate}
+                      disabled={isLoadingMutation}
                       className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 sm:text-sm sm:leading-6"
                       value={variable.prefix ?? ""}
                       onChange={(evt) =>
@@ -277,7 +284,7 @@ const ComplexQuestionPage: NextPage<{ id: string }> = ({ id }) => {
                       type="text"
                       name={`suffix-${variable.id}`}
                       id={`suffix-${variable.id}`}
-                      disabled={isLoadingUpdate}
+                      disabled={isLoadingMutation}
                       className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 sm:text-sm sm:leading-6"
                       value={variable.suffix ?? ""}
                       onChange={(evt) =>
@@ -288,7 +295,7 @@ const ComplexQuestionPage: NextPage<{ id: string }> = ({ id }) => {
                     />
                   </div>
                   <button
-                    disabled={isLoadingUpdate}
+                    disabled={isLoadingMutation}
                     className="max-w-min rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:bg-gray-100"
                     onClick={() => setVariables((variables) => variables.filter(({ id }) => id !== variable.id))}
                   >
@@ -306,7 +313,7 @@ const ComplexQuestionPage: NextPage<{ id: string }> = ({ id }) => {
             <textarea
               name="code_solver"
               id="code_solver"
-              disabled={isLoadingUpdate}
+              disabled={isLoadingMutation}
               className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 sm:text-sm sm:leading-6"
               value={codeToSolveEquation}
               onChange={(evt) => setCodeToSolveEquation(evt.target.value)}
@@ -314,9 +321,23 @@ const ComplexQuestionPage: NextPage<{ id: string }> = ({ id }) => {
             />
           </div>
         </div>
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-between pt-10">
           <button
-            disabled={isLoadingUpdate}
+            disabled={isLoadingMutation}
+            className="max-w-min rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:bg-gray-100"
+            onClick={async () => {
+              try {
+                await deleteQuestion({ id: parseInt(id) });
+                await router.push(`/teacher/subject/${question.subject}`);
+              } catch (err) {
+                // err
+              }
+            }}
+          >
+            Eliminar
+          </button>
+          <button
+            disabled={isLoadingMutation}
             className="max-w-min rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:bg-gray-100"
             onClick={() => handleUpdate()}
           >

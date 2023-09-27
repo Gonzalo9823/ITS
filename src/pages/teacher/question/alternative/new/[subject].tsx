@@ -45,7 +45,11 @@ const NewAlternativeQuestionPage: NextPage<{
         {error?.data?.zodError ? (
           <div className="rounded-md bg-red-500 p-6">
             <ul>
-              {Children.toArray(Object.values(error.data.zodError.fieldErrors).flatMap((error) => <li className="text-white">&#8226; {error}</li>))}
+              {Children.toArray(
+                Object.values(error.data.zodError.fieldErrors).flatMap(
+                  (errors) => errors?.map((error) => <li className="text-white">&#8226; {error}</li>),
+                ),
+              )}
             </ul>
           </div>
         ) : null}
@@ -215,7 +219,7 @@ const NewAlternativeQuestionPage: NextPage<{
             </div>
           </div>
         </div>
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end pt-10">
           <button
             disabled={isLoadingCreate}
             className="max-w-fit rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:bg-gray-100"

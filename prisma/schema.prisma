@@ -83,6 +83,7 @@ model AlternativeQuestion {
   subject   String
   answers   AlternativeAnswer[]
   quizes    QuizQuestion[]
+  deleted   Boolean             @default(false)
 }
 
 model AlternativeAnswer {
@@ -105,6 +106,7 @@ model ComplexQuestion {
   variables           ComplexQuestionVariable[]
   ComplexQuizQuestion ComplexQuizQuestion[]
   answerHint          String?
+  deleted             Boolean                   @default(false)
 }
 
 model ComplexQuestionVariable {
