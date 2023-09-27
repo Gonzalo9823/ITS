@@ -36,18 +36,19 @@ model Session {
 }
 
 model User {
-  id            String        @id @default(cuid())
-  name          String?
-  email         String?       @unique
-  emailVerified DateTime?
-  image         String?
-  points        Float         @default(5.0)
-  accounts      Account[]
-  sessions      Session[]
-  Quiz          Quiz[]
-  ComplexQuiz   ComplexQuiz[]
-  subjects      UserSubject[]
-  role          String        @default("student")
+  id                          String                        @id @default(cuid())
+  name                        String?
+  email                       String?                       @unique
+  emailVerified               DateTime?
+  image                       String?
+  points                      Float                         @default(5.0)
+  accounts                    Account[]
+  sessions                    Session[]
+  Quiz                        Quiz[]
+  ComplexQuiz                 ComplexQuiz[]
+  subjects                    UserSubject[]
+  role                        String                        @default("student")
+  CompletedUserSubjectContent CompletedUserSubjectContent[]
 }
 
 model VerificationToken {
@@ -59,11 +60,22 @@ model VerificationToken {
 }
 
 model Subject {
-  id           Int           @id @default(autoincrement())
+  id           Int              @id @default(autoincrement())
   name         String
   image        String
   spanishName  String
   userSubjects UserSubject[]
+  contents     SubjectContent[]
+}
+
+model SubjectContent {
+  id                          Int                           @id @default(autoincrement())
+  title                       String
+  text                        String
+  svg                         String?
+  subject                     Subject                       @relation(fields: [subjectId], references: [id])
+  subjectId                   Int
+  CompletedUserSubjectContent CompletedUserSubjectContent[]
 }
 
 model UserSubject {
@@ -73,6 +85,14 @@ model UserSubject {
   userId    String
   subjectId Int
   completed Boolean @default(false)
+}
+
+model CompletedUserSubjectContent {
+  id               Int            @id @default(autoincrement())
+  contect          SubjectContent @relation(fields: [subjectContentId], references: [id])
+  user             User           @relation(fields: [userId], references: [id])
+  subjectContentId Int
+  userId           String
 }
 
 model AlternativeQuestion {

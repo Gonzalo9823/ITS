@@ -22,7 +22,7 @@ const Subject: FunctionComponent<SubjectInterface> = ({ spanishName, image, name
     }
 
     if (!canView) return;
-    await router.push("/subject");
+    await router.push(`/subject/${name}`);
   };
 
   return (
