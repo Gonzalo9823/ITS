@@ -75,7 +75,7 @@ export const teacherRouter = createTRPCRouter({
       ];
     }),
 
-  getAlternativeQuestion: teacherProcedure.input(z.object({ id: z.number() })).query(async ({ ctx, input }) => {
+  getAlternativeQuestion: teacherProcedure.input(z.object({ id: z.number({ invalid_type_error: "Id invalido" }) })).query(async ({ ctx, input }) => {
     const question = await ctx.prisma.alternativeQuestion.findFirstOrThrow({
       include: {
         answers: true,
@@ -88,17 +88,95 @@ export const teacherRouter = createTRPCRouter({
     return question;
   }),
 
-  updateAlternativeQuestion: teacherProcedure
+  createAlternativeQuestion: teacherProcedure
     .input(
       z.object({
-        id: z.number(),
+        subject: z.enum([
+          "electric_charges",
+          "coulombs_force_law",
+          "electric_field_of_point_charges",
+          "field_lines_and_equipotential_surfaces",
+          "electric_dipole",
+        ]),
         title: z.string().trim().min(1, "Título Requerido"),
         subtitle: z.string().trim(),
-        dificulty: z.number().min(1, "La dificultad debe ser como minimo 1").max(10, "La dificultad debe ser como maximo 10"),
+        dificulty: z
+          .number({ invalid_type_error: "Dificultad invalida" })
+          .min(1, "La dificultad debe ser como minimo 1")
+          .max(10, "La dificultad debe ser como maximo 10"),
         answers: z
           .array(
             z.object({
-              id: z.number(),
+              value: z.string().trim().min(1, "Respuesta requerida."),
+              hint: z.string().trim().nullish(),
+              isCorrect: z.boolean(),
+            }),
+          )
+          .min(4, "Debes tener por lo menos 4 alternativas")
+          .superRefine((answers, ctx) => {
+            const hasCorrect = answers.filter(({ isCorrect }) => isCorrect);
+
+            if (hasCorrect.length === 0) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Debes tener por lo menos una respuesta como correcta.",
+              });
+            }
+
+            if (hasCorrect.length > 1) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Debes tener solo una respuesta como correcta.",
+              });
+            }
+
+            for (const { isCorrect, hint } of answers) {
+              if (!isCorrect && !hint) {
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  message: "Toda respuesta no correcta debe tener una ayuda.",
+                });
+              }
+            }
+          }),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { subject, title, subtitle, dificulty, answers } = input;
+
+      const question = await ctx.prisma.alternativeQuestion.create({
+        data: {
+          subject,
+          title,
+          subtitle,
+          dificulty,
+          answers: {
+            create: answers.map((answer) => ({
+              value: answer.value,
+              hint: answer.hint,
+              isCorrect: answer.isCorrect,
+            })),
+          },
+        },
+      });
+
+      return question.id;
+    }),
+
+  updateAlternativeQuestion: teacherProcedure
+    .input(
+      z.object({
+        id: z.number({ invalid_type_error: "Id invalido" }),
+        title: z.string().trim().min(1, "Título Requerido"),
+        subtitle: z.string().trim(),
+        dificulty: z
+          .number({ invalid_type_error: "Dificultad invalida" })
+          .min(1, "La dificultad debe ser como minimo 1")
+          .max(10, "La dificultad debe ser como maximo 10"),
+        answers: z
+          .array(
+            z.object({
+              id: z.number({ invalid_type_error: "Id invalido" }),
               value: z.string().trim().min(1, "Respuesta requerida."),
               hint: z.string().trim().nullish(),
               isCorrect: z.boolean(),
@@ -179,7 +257,7 @@ export const teacherRouter = createTRPCRouter({
       }
     }),
 
-  getComplexQuestion: teacherProcedure.input(z.object({ id: z.number() })).query(async ({ ctx, input }) => {
+  getComplexQuestion: teacherProcedure.input(z.object({ id: z.number({ invalid_type_error: "Id invalido" }) })).query(async ({ ctx, input }) => {
     const question = await ctx.prisma.complexQuestion.findFirstOrThrow({
       include: {
         variables: true,
@@ -192,29 +270,103 @@ export const teacherRouter = createTRPCRouter({
     return question;
   }),
 
-  updateComplexQuestion: teacherProcedure
+  createComplexQuestion: teacherProcedure
     .input(
       z.object({
-        id: z.number(),
+        subject: z.enum([
+          "electric_charges",
+          "coulombs_force_law",
+          "electric_field_of_point_charges",
+          "field_lines_and_equipotential_surfaces",
+          "electric_dipole",
+        ]),
         title: z.string().trim().min(1, "Título Requerido"),
         subtitle: z.string().trim(),
-        dificulty: z.number().min(1, "La dificultad debe ser como minimo 1").max(10, "La dificultad debe ser como maximo 10"),
+        dificulty: z
+          .number({ invalid_type_error: "Número invalido" })
+          .min(1, "La dificultad debe ser como minimo 1")
+          .max(10, "La dificultad debe ser como maximo 10"),
         svg: z.string().trim().min(1, "SVG Requerido"),
         variables: z.array(
-          z.object({
-            id: z.number(),
-            varname: z.string().trim().min(1, "Nombre Requerido"),
-            min: z.number().nullish(),
-            max: z.number().nullish(),
-            prefix: z.string().nullish(),
-            suffix: z.string().nullish(),
-          }),
+          z
+            .object({
+              varname: z.string().trim().min(1, "Nombre Requerido"),
+              min: z.number({ invalid_type_error: "Mínimo invalido" }).nullish(),
+              max: z.number({ invalid_type_error: "Máximo invalido" }).nullish(),
+              prefix: z.string().nullish(),
+              suffix: z.string().nullish(),
+            })
+            .refine(({ min, max }) => {
+              if (min && max) {
+                return min < max;
+              }
+
+              return true;
+            }, "Mínimo no puede ser mayor a Máximo."),
         ),
         codeToSolveEquation: z.string().trim().min(1, "El Código para resolver el problema es requerido"),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, title, subtitle, dificulty, variables, codeToSolveEquation } = input;
+      const { subject, title, subtitle, dificulty, svg, variables, codeToSolveEquation } = input;
+
+      const question = await ctx.prisma.complexQuestion.create({
+        data: {
+          title,
+          subtitle,
+          dificulty,
+          svg,
+          codeToSolveEquation,
+          subject,
+          variables: {
+            create: variables.map((variable) => ({
+              varname: variable.varname,
+              min: variable.min,
+              max: variable.max,
+              prefix: variable.prefix,
+              suffix: variable.suffix,
+            })),
+          },
+        },
+      });
+
+      return question.id;
+    }),
+
+  updateComplexQuestion: teacherProcedure
+    .input(
+      z.object({
+        id: z.number({ invalid_type_error: "Id invalido" }),
+        title: z.string().trim().min(1, "Título Requerido"),
+        subtitle: z.string().trim(),
+        dificulty: z
+          .number({ invalid_type_error: "Dificultad invalido" })
+          .min(1, "La dificultad debe ser como minimo 1")
+          .max(10, "La dificultad debe ser como maximo 10"),
+        svg: z.string().trim().min(1, "SVG Requerido"),
+        variables: z.array(
+          z
+            .object({
+              id: z.number({ invalid_type_error: "Id invalido" }),
+              varname: z.string().trim().min(1, "Nombre Requerido"),
+              min: z.number({ invalid_type_error: "Mínimo invalido" }).nullish(),
+              max: z.number({ invalid_type_error: "Máximo invalido" }).nullish(),
+              prefix: z.string().nullish(),
+              suffix: z.string().nullish(),
+            })
+            .refine(({ min, max }) => {
+              if (min && max) {
+                return min < max;
+              }
+
+              return true;
+            }, "Mínimo no puede ser mayor a Máximo."),
+        ),
+        codeToSolveEquation: z.string().trim().min(1, "El Código para resolver el problema es requerido"),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { id, title, subtitle, dificulty, svg, variables, codeToSolveEquation } = input;
 
       const question = await ctx.prisma.complexQuestion.update({
         include: {
@@ -224,6 +376,7 @@ export const teacherRouter = createTRPCRouter({
           title,
           subtitle,
           dificulty,
+          svg,
           codeToSolveEquation,
         },
         where: {

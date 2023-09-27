@@ -3,36 +3,27 @@ import Navbar from "~/components/Navbar";
 import { type GetServerSideProps } from "next";
 import { useSession } from "next-auth/react";
 import { getServerAuthSession } from "~/server/auth";
-import { api } from "~/utils/api";
-import { Children, useRef, useState } from "react";
+import { Children, useState } from "react";
 import { Switch } from "@headlessui/react";
 import { useRouter } from "next/router";
+import { api } from "~/utils/api";
 
 const classNames = (...classes: string[]) => {
   return classes.filter(Boolean).join(" ");
 };
 
-const AlternativeQuestionPage: NextPage<{ id: string }> = ({ id }) => {
+const NewAlternativeQuestionPage: NextPage<{
+  subject:
+    | "electric_charges"
+    | "coulombs_force_law"
+    | "electric_field_of_point_charges"
+    | "field_lines_and_equipotential_surfaces"
+    | "electric_dipole";
+}> = ({ subject }) => {
   const router = useRouter();
   const { data: session } = useSession();
-  const hasData = useRef<boolean>(false);
 
-  const { isLoading: isLoadingUpdate, mutateAsync: updateQuestion, error, isSuccess } = api.teacher.updateAlternativeQuestion.useMutation();
-
-  const { isLoading, data: question } = api.teacher.getAlternativeQuestion.useQuery(
-    { id: parseInt(id) },
-    {
-      onSuccess: ({ title, subtitle, dificulty, answers }) => {
-        if (!hasData.current) {
-          setTitle(title);
-          setSubtitle(subtitle ?? "");
-          setDificulty(`${dificulty}`);
-          setAlternatives(answers);
-          hasData.current = true;
-        }
-      },
-    },
-  );
+  const { isLoading: isLoadingCreate, mutateAsync, error } = api.teacher.createAlternativeQuestion.useMutation();
 
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
@@ -47,22 +38,6 @@ const AlternativeQuestionPage: NextPage<{ id: string }> = ({ id }) => {
     }[]
   >([]);
 
-  const handleUpdate = async () => {
-    try {
-      await updateQuestion({
-        id: parseInt(id),
-        title,
-        subtitle,
-        dificulty: parseInt(dificulty),
-        answers: alternatives,
-      });
-    } catch (err) {
-      // error
-    }
-  };
-
-  if (isLoading || !question) return <h1>Loading...</h1>;
-
   return (
     <div className="space-y-5 px-20 py-4">
       <Navbar user={{ name: session?.user.name ?? "", role: session?.user.role ?? "student" }} />
@@ -74,13 +49,8 @@ const AlternativeQuestionPage: NextPage<{ id: string }> = ({ id }) => {
             </ul>
           </div>
         ) : null}
-        {isSuccess ? (
-          <div className="rounded-md bg-green-500 p-6">
-            <h1 className="font-bold text-white">¡Actualizada!</h1>
-          </div>
-        ) : null}
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold">Pregunta de Alternativa</h1>
+          <h1 className="text-xl font-bold">Nueva Pregunta de Alternativa</h1>
           <button
             className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:bg-gray-100"
             onClick={() => router.back()}
@@ -98,7 +68,7 @@ const AlternativeQuestionPage: NextPage<{ id: string }> = ({ id }) => {
                 type="text"
                 name="title"
                 id="title"
-                disabled={isLoadingUpdate}
+                disabled={isLoadingCreate}
                 className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 sm:text-sm sm:leading-6"
                 value={title}
                 onChange={(evt) => setTitle(evt.target.value)}
@@ -115,7 +85,7 @@ const AlternativeQuestionPage: NextPage<{ id: string }> = ({ id }) => {
                 type="text"
                 name="sub_title"
                 id="sub_title"
-                disabled={isLoadingUpdate}
+                disabled={isLoadingCreate}
                 className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 sm:text-sm sm:leading-6"
                 value={subtitle}
                 onChange={(evt) => setSubtitle(evt.target.value)}
@@ -132,7 +102,7 @@ const AlternativeQuestionPage: NextPage<{ id: string }> = ({ id }) => {
                 type="number"
                 name="dificulty"
                 id="dificulty"
-                disabled={isLoadingUpdate}
+                disabled={isLoadingCreate}
                 className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 sm:text-sm sm:leading-6"
                 value={dificulty}
                 onChange={(evt) => setDificulty(evt.target.value)}
@@ -144,7 +114,7 @@ const AlternativeQuestionPage: NextPage<{ id: string }> = ({ id }) => {
             <div className="flex items-center justify-between">
               <h1 className="block text-sm font-medium leading-6 text-gray-900">Alternativas ({alternatives.length})</h1>
               <button
-                disabled={isLoadingUpdate}
+                disabled={isLoadingCreate}
                 className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:bg-gray-100"
                 onClick={() =>
                   setAlternatives((alternatives) => [
@@ -173,7 +143,7 @@ const AlternativeQuestionPage: NextPage<{ id: string }> = ({ id }) => {
                       type="text"
                       name={`title-${alternative.id}`}
                       id={`title-${alternative.id}`}
-                      disabled={isLoadingUpdate}
+                      disabled={isLoadingCreate}
                       className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 sm:text-sm sm:leading-6"
                       value={alternative.value}
                       onChange={(evt) =>
@@ -193,7 +163,7 @@ const AlternativeQuestionPage: NextPage<{ id: string }> = ({ id }) => {
                       type="text"
                       name={`hint-${alternative.id}`}
                       id={`hint-${alternative.id}`}
-                      disabled={isLoadingUpdate || alternative.isCorrect}
+                      disabled={isLoadingCreate || alternative.isCorrect}
                       className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 sm:text-sm sm:leading-6"
                       value={alternative.isCorrect ? "" : alternative.hint ?? ""}
                       onChange={(evt) =>
@@ -208,7 +178,7 @@ const AlternativeQuestionPage: NextPage<{ id: string }> = ({ id }) => {
                   <Switch.Group as="div" className="flex items-center">
                     <Switch
                       checked={alternative.isCorrect}
-                      disabled={isLoadingUpdate}
+                      disabled={isLoadingCreate}
                       onChange={(value) =>
                         setAlternatives((alternatives) =>
                           alternatives.map((_alternative) =>
@@ -234,7 +204,7 @@ const AlternativeQuestionPage: NextPage<{ id: string }> = ({ id }) => {
                     </Switch.Label>
                   </Switch.Group>
                   <button
-                    disabled={isLoadingUpdate}
+                    disabled={isLoadingCreate}
                     className="max-w-min rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:bg-gray-100"
                     onClick={() => setAlternatives((alternatives) => alternatives.filter(({ id }) => id !== alternative.id))}
                   >
@@ -247,11 +217,25 @@ const AlternativeQuestionPage: NextPage<{ id: string }> = ({ id }) => {
         </div>
         <div className="flex items-center justify-end">
           <button
-            disabled={isLoadingUpdate}
-            className="max-w-min rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:bg-gray-100"
-            onClick={() => handleUpdate()}
+            disabled={isLoadingCreate}
+            className="max-w-fit rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:bg-gray-100"
+            onClick={async () => {
+              try {
+                const newQuestionId = await mutateAsync({
+                  title,
+                  subtitle,
+                  dificulty: parseInt(dificulty),
+                  subject,
+                  answers: alternatives,
+                });
+
+                await router.push(`/teacher/question/alternative/${newQuestionId}`);
+              } catch (err) {
+                // err
+              }
+            }}
           >
-            Actualizar
+            Crear Pregunta
           </button>
         </div>
       </section>
@@ -259,7 +243,7 @@ const AlternativeQuestionPage: NextPage<{ id: string }> = ({ id }) => {
   );
 };
 
-export default AlternativeQuestionPage;
+export default NewAlternativeQuestionPage;
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
   const session = await getServerAuthSession(ctx);
@@ -274,6 +258,6 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
   }
 
   return {
-    props: { session, id: ctx.query.id },
+    props: { session, subject: ctx.query.subject },
   };
 };
