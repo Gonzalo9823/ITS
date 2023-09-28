@@ -36,15 +36,16 @@ const QuestionPage: NextPage<{
     <div className="space-y-5 px-20 py-4">
       <Navbar user={{ name: session?.user.name ?? "", role: session?.user.role ?? "student" }} />
       <section className="space-y-4">
-        <div className="flex justify-start">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold">Quiz</h1>
+
           <Link
             href="/dashboard"
             className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:bg-gray-400"
           >
-            Volver a Dashboard
+            Volver
           </Link>
         </div>
-        <h1 className="text-xl font-bold">Quiz</h1>
         <ProgressBar steps={data.amountOfQuestions} currentStep={data.currentQuestionIdx + 1} />
         <div className="space-y-9 pt-10">
           <MultipleAnswerQuestion

@@ -1,7 +1,7 @@
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { type GetServerSidePropsContext } from "next";
 import { getServerSession, type DefaultSession, type NextAuthOptions, type Awaitable } from "next-auth";
-import type { AdapterUser } from "next-auth/adapters";
+import type { AdapterSession, AdapterUser } from "next-auth/adapters";
 import GoogleProvider from "next-auth/providers/google";
 
 import { env } from "~/env.mjs";
@@ -58,6 +58,81 @@ export const authOptions: NextAuthOptions = {
       }
 
       return user as Awaitable<AdapterUser>;
+    },
+    getUser: async (id) => {
+      const user = await prisma.user.findUnique({ where: { id } });
+
+      if (user) {
+        await prisma.user.update({
+          data: {
+            lastConnection: new Date(),
+          },
+          where: {
+            id,
+          },
+        });
+      }
+
+      return user as Awaitable<AdapterUser>;
+    },
+    getUserByEmail: async (email) => {
+      const user = await prisma.user.findUnique({ where: { email } });
+
+      if (user) {
+        await prisma.user.update({
+          data: {
+            lastConnection: new Date(),
+          },
+          where: {
+            email,
+          },
+        });
+      }
+
+      return user as Awaitable<AdapterUser>;
+    },
+    getUserByAccount: async (provider_providerAccountId) => {
+      const account = await prisma.account.findUnique({
+        where: { provider_providerAccountId },
+        select: { user: true },
+      });
+
+      if (account?.user.id) {
+        await prisma.user.update({
+          data: {
+            lastConnection: new Date(),
+          },
+          where: {
+            id: account.user.id,
+          },
+        });
+      }
+
+      return (account?.user ?? null) as Awaitable<AdapterUser> | null;
+    },
+    getSessionAndUser: async (sessionToken) => {
+      const userAndSession = await prisma.session.findUnique({
+        where: { sessionToken },
+        include: { user: true },
+      });
+
+      if (!userAndSession) return null;
+
+      const { user, ...session } = userAndSession;
+
+      await prisma.user.update({
+        data: {
+          lastConnection: new Date(),
+        },
+        where: {
+          id: user.id,
+        },
+      });
+
+      return { user, session } as {
+        session: AdapterSession;
+        user: AdapterUser;
+      };
     },
   },
   providers: [

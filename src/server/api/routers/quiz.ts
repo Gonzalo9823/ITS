@@ -205,11 +205,19 @@ export const quizRouter = createTRPCRouter({
       if (question.answeredFirstTry || isCorrect) {
         updateData.answeredSecondTry = true;
         updateData.selectedAnswerSecondTry = input.answer;
+
+        if (isCorrect) {
+          updateData.answeredCorrectSecondTry = true;
+        }
       }
 
       if (!question.answeredFirstTry) {
         updateData.answeredFirstTry = true;
         updateData.selectedAnswerFirstTry = input.answer;
+
+        if (isCorrect) {
+          updateData.answeredCorrectFirstTry = true;
+        }
       }
 
       if (isCorrect) {
@@ -440,6 +448,18 @@ export const quizRouter = createTRPCRouter({
             },
             where: {
               id: input.id,
+            },
+          });
+
+          await ctx.prisma.userSubject.updateMany({
+            data: {
+              completed: true,
+            },
+            where: {
+              subject: {
+                name: alternativeQuiz.question.subject,
+              },
+              userId: ctx.session.user.id,
             },
           });
 

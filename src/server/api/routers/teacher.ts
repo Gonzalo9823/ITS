@@ -17,6 +17,7 @@ export const teacherRouter = createTRPCRouter({
 
     return subjects;
   }),
+
   getUsers: teacherProcedure.query(async ({ ctx }) => {
     const users = await ctx.prisma.user.findMany({
       select: {
@@ -24,22 +25,7 @@ export const teacherRouter = createTRPCRouter({
         name: true,
         email: true,
         points: true,
-        subjects: {
-          select: {
-            id: true,
-            subject: {
-              select: {
-                spanishName: true,
-              },
-            },
-            completed: true,
-          },
-          orderBy: {
-            subject: {
-              id: "asc",
-            },
-          },
-        },
+        lastConnection: true,
       },
       where: {
         role: "student",
@@ -47,6 +33,166 @@ export const teacherRouter = createTRPCRouter({
     });
 
     return users;
+  }),
+
+  getQuestionsAnalytics: teacherProcedure.query(async ({ ctx }) => {
+    const topSkippedQuestions = await ctx.prisma.quizQuestion.groupBy({
+      by: ["questionId"],
+      _count: {
+        _all: true,
+      },
+      where: {
+        skipped: true,
+      },
+      take: 10,
+      orderBy: {
+        _count: {
+          questionId: "desc",
+        },
+      },
+    });
+
+    const topCorrectlyFirstTry = await ctx.prisma.quizQuestion.groupBy({
+      by: ["questionId"],
+      _count: {
+        _all: true,
+      },
+      where: {
+        skipped: false,
+        answeredCorrectFirstTry: true,
+      },
+      take: 10,
+      orderBy: {
+        _count: {
+          questionId: "desc",
+        },
+      },
+    });
+
+    let topCorrectlySecondTry: typeof topCorrectlyFirstTry = [];
+
+    if (topCorrectlyFirstTry.length < 10) {
+      const result = await ctx.prisma.quizQuestion.groupBy({
+        by: ["questionId"],
+        _count: {
+          _all: true,
+        },
+        where: {
+          skipped: false,
+          answeredCorrectFirstTry: false,
+          answeredCorrectSecondTry: true,
+        },
+        orderBy: {
+          _count: {
+            questionId: "desc",
+          },
+        },
+      });
+
+      topCorrectlySecondTry = result;
+    }
+
+    const topCorrectly = [...topCorrectlyFirstTry, ...topCorrectlySecondTry].reduce(
+      (acc, curr) => {
+        const existing = acc.find((a) => a.questionId === curr.questionId);
+        if (existing) {
+          existing._count._all += curr._count._all;
+        } else {
+          acc.push(curr);
+        }
+        return acc;
+      },
+      [] as typeof topCorrectlyFirstTry,
+    );
+
+    const topWrongQuestions = await ctx.prisma.quizQuestion.groupBy({
+      by: ["questionId"],
+      _count: {
+        _all: true,
+      },
+      where: {
+        skipped: false,
+        answeredCorrectFirstTry: false,
+        answeredCorrectSecondTry: false,
+      },
+      take: 10,
+      orderBy: {
+        _count: {
+          questionId: "desc",
+        },
+      },
+    });
+
+    const questionDetails = await ctx.prisma.alternativeQuestion.findMany({
+      where: {
+        id: {
+          in: [...new Set([...topSkippedQuestions, ...topCorrectly, ...topWrongQuestions].map((q) => q.questionId))],
+        },
+      },
+    });
+
+    return {
+      skipped: topSkippedQuestions.map((r) => {
+        const details = questionDetails.find((q) => q.id === r.questionId);
+
+        return {
+          questionId: r.questionId,
+          title: details?.title,
+          subject: (() => {
+            const subject = details?.subject;
+
+            if (subject === "electric_charges") return "Cargas Électricas";
+            if (subject === "coulombs_force_law") return "Ley de Fuerzas de Coulomb";
+            if (subject === "electric_field_of_point_charges") return "Campo Électrico de Cargas Puntuales";
+            if (subject === "field_lines_and_equipotential_surfaces") return "Líneas de Campo y Superficies Equipotenciales";
+            if (subject === "electric_dipole") return "Dipolo Eléctrico";
+
+            return "";
+          })(),
+          count: r._count._all,
+        };
+      }),
+      topCorrectly: topCorrectly.map((r) => {
+        const details = questionDetails.find((q) => q.id === r.questionId);
+
+        return {
+          questionId: r.questionId,
+          title: details?.title,
+          subject: (() => {
+            const subject = details?.subject;
+
+            if (subject === "electric_charges") return "Cargas Électricas";
+            if (subject === "coulombs_force_law") return "Ley de Fuerzas de Coulomb";
+            if (subject === "electric_field_of_point_charges") return "Campo Électrico de Cargas Puntuales";
+            if (subject === "field_lines_and_equipotential_surfaces") return "Líneas de Campo y Superficies Equipotenciales";
+            if (subject === "electric_dipole") return "Dipolo Eléctrico";
+
+            return "";
+          })(),
+          count: r._count._all,
+        };
+      }),
+      topWrong: topWrongQuestions.map((r) => {
+        const details = questionDetails.find((q) => q.id === r.questionId);
+
+        return {
+          questionId: r.questionId,
+          title: details?.title,
+          subject: (() => {
+            const subject = details?.subject;
+
+            if (subject === "electric_charges") return "Cargas Électricas";
+            if (subject === "coulombs_force_law") return "Ley de Fuerzas de Coulomb";
+            if (subject === "electric_field_of_point_charges") return "Campo Électrico de Cargas Puntuales";
+            if (subject === "field_lines_and_equipotential_surfaces") return "Líneas de Campo y Superficies Equipotenciales";
+            if (subject === "electric_dipole") return "Dipolo Eléctrico";
+
+            return "";
+          })(),
+          count: r._count._all,
+        };
+      }),
+    };
   }),
 
   getSubjectQuestions: teacherProcedure

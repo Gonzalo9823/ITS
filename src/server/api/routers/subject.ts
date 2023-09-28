@@ -172,7 +172,8 @@ export const subjectRouter = createTRPCRouter({
       });
 
       if (subjectContents.contents.at(-1)?.id === input.contentId) {
-        const isComplex = Math.random() < 0.5;
+        // const isComplex = Math.random() < 0.5;
+        const isComplex = false;
 
         return {
           changeRoute: true,

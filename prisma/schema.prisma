@@ -49,6 +49,7 @@ model User {
   subjects                    UserSubject[]
   role                        String                        @default("student")
   CompletedUserSubjectContent CompletedUserSubjectContent[]
+  lastConnection              DateTime?                     @default(now())
 }
 
 model VerificationToken {
@@ -151,16 +152,18 @@ model Quiz {
 }
 
 model QuizQuestion {
-  id                      Int                 @id @default(autoincrement())
-  quiz                    Quiz                @relation(fields: [quizId], references: [id])
-  quizId                  Int
-  question                AlternativeQuestion @relation(fields: [questionId], references: [id])
-  questionId              Int
-  skipped                 Boolean
-  answeredFirstTry        Boolean
-  selectedAnswerFirstTry  Int?
-  answeredSecondTry       Boolean
-  selectedAnswerSecondTry Int?
+  id                       Int                 @id @default(autoincrement())
+  quiz                     Quiz                @relation(fields: [quizId], references: [id])
+  quizId                   Int
+  question                 AlternativeQuestion @relation(fields: [questionId], references: [id])
+  questionId               Int
+  skipped                  Boolean
+  answeredFirstTry         Boolean
+  answeredCorrectFirstTry  Boolean?
+  selectedAnswerFirstTry   Int?
+  answeredSecondTry        Boolean
+  answeredCorrectSecondTry Boolean?
+  selectedAnswerSecondTry  Int?
 }
 
 model ComplexQuiz {
