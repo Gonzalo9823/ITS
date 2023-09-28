@@ -101,6 +101,9 @@ const DashboardPage: NextPage<{
             className="max-w-fit rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:bg-gray-100"
             onClick={async () => {
               try {
+                const { totalTimeOnScreen } = getFocusedTime();
+                await mutateAsync({ contentId: data.contents[0]!.id, focusedTime: totalTimeOnScreen }).catch(() => null);
+
                 const response = await completeContent({
                   contentId: data.contents[0]!.id,
                 });

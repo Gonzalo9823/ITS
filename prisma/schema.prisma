@@ -168,6 +168,7 @@ model QuizQuestion {
   answeredSecondTry        Boolean
   answeredCorrectSecondTry Boolean?
   selectedAnswerSecondTry  Int?
+  focusedTime              Int?
 }
 
 model ComplexQuiz {

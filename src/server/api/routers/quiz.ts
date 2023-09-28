@@ -29,6 +29,7 @@ export const quizRouter = createTRPCRouter({
 
     return Boolean(hasActiveQuiz);
   }),
+
   get: protectedProcedure
     .input(
       z
@@ -161,6 +162,27 @@ export const quizRouter = createTRPCRouter({
           selectedAnswerFirstTry: newQuiz.questions[0]!.selectedAnswerFirstTry,
         },
       };
+    }),
+
+  updateFocusedTime: protectedProcedure
+    .input(z.object({ questionId: z.coerce.number(), focusedTime: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const question = await ctx.prisma.quizQuestion.findFirst({
+        where: {
+          id: input.questionId,
+        },
+      });
+
+      const newFocusedTime = Math.round(input.focusedTime / 1000) + (question?.focusedTime ?? 0);
+
+      await ctx.prisma.quizQuestion.updateMany({
+        data: {
+          focusedTime: newFocusedTime,
+        },
+        where: {
+          id: input.questionId,
+        },
+      });
     }),
 
   answerQuestion: protectedProcedure

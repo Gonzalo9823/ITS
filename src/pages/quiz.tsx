@@ -1,6 +1,6 @@
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MultipleAnswerQuestion from "~/components/MultipleAnswerQuestion";
 import Navbar from "~/components/Navbar";
 import ProgressBar from "~/components/ProgressBar";
@@ -10,6 +10,7 @@ import { type GetServerSideProps } from "next";
 import { api } from "~/utils/api";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { useFocusTime } from "~/helpers/useFocusTracker";
 
 const QuestionPage: NextPage<{
   query: {
@@ -25,10 +26,28 @@ const QuestionPage: NextPage<{
   const { data: session } = useSession();
   const router = useRouter();
 
+  const getFocusedTime = useFocusTime();
+
   const [selectedAnswer, setSelectedAnswer] = useState("");
   const { isLoading, data, refetch } = api.quiz.get.useQuery({ subject: query.subject, amountOfQuestions: query.amountOfQuestions });
+  const { mutateAsync: updateFocusedOnQuestion } = api.quiz.updateFocusedTime.useMutation();
   const { isLoading: isLoadingAnswer, mutateAsync: answerQuestion } = api.quiz.answerQuestion.useMutation();
   const { isLoading: isLoadingSkip, mutateAsync: skipQuestion } = api.quiz.skip.useMutation();
+
+  useEffect(() => {
+    const handleRouteChange = (_url: string) => {
+      if (data) {
+        const { totalTimeOnScreen } = getFocusedTime();
+        updateFocusedOnQuestion({ questionId: data.question.id, focusedTime: totalTimeOnScreen }).catch(() => null);
+      }
+    };
+
+    router.events.on("routeChangeStart", handleRouteChange);
+
+    return () => {
+      router.events.off("routeChangeStart", handleRouteChange);
+    };
+  }, [data]);
 
   if (isLoading || !data) return <h1>Loading...</h1>;
 
@@ -74,6 +93,9 @@ const QuestionPage: NextPage<{
             className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:bg-gray-400"
             onClick={async () => {
               try {
+                const { totalTimeOnScreen } = getFocusedTime();
+                await updateFocusedOnQuestion({ questionId: data.question.id, focusedTime: totalTimeOnScreen }).catch(() => null);
+
                 const { completed } = await skipQuestion({
                   id: data.id,
                   questionId: data.question.id,
@@ -97,6 +119,9 @@ const QuestionPage: NextPage<{
             className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:bg-gray-400"
             onClick={async () => {
               try {
+                const { totalTimeOnScreen } = getFocusedTime();
+                await updateFocusedOnQuestion({ questionId: data.question.id, focusedTime: totalTimeOnScreen }).catch(() => null);
+
                 const { completed } = await answerQuestion({
                   id: data.id,
                   questionId: data.question.id,

@@ -44,13 +44,24 @@ export const teacherRouter = createTRPCRouter({
       },
     });
 
+    const _result = await ctx.prisma
+      .$queryRaw`SELECT quiz."userId" as userId, SUM(q."focusedTime") as totalFocusedTime FROM "QuizQuestion" q INNER JOIN "Quiz" quiz ON q."quizId" = quiz.id WHERE q."focusedTime" IS NOT NULL GROUP BY quiz."userId"`;
+
+    const result = _result as {
+      userid: string;
+      totalfocusedtime: number;
+    }[];
+
     return users.map((user) => {
       const totalTimeFocusedData = totalTimeFocusedByUser.find((item) => item.userId === user.id);
-      const totalTime = totalTimeFocusedData ? totalTimeFocusedData._sum.totalTimeFocused : 0;
+      const totalTimeFocusDataQuestion = result.find((item) => item.userid === user.id);
+
+      const totalTime = totalTimeFocusedData ? totalTimeFocusedData._sum.totalTimeFocused ?? 0 : 0;
+      const totalTimeOnQuestions = totalTimeFocusDataQuestion?.totalfocusedtime ? Number(totalTimeFocusDataQuestion.totalfocusedtime) : 0;
 
       return {
         ...user,
-        totalTimeFocused: totalTime,
+        totalTimeFocused: totalTime + totalTimeOnQuestions,
       };
     });
   }),
@@ -110,23 +121,35 @@ export const teacherRouter = createTRPCRouter({
       },
     });
 
+    const _result = await ctx.prisma
+      .$queryRaw`SELECT SUM(q."focusedTime") as totalFocusedTime FROM "QuizQuestion" q INNER JOIN "Quiz" quiz ON q."quizId" = quiz.id WHERE q."focusedTime" IS NOT NULL AND "userId" = ${input.id}`;
+
+    const result = _result as {
+      userid: string;
+      totalfocusedtime: number;
+    }[];
+
     const _subjects = user!.subjects.map((subject) => {
       const userContent = user?.CompletedUserSubjectContent.find((conte) => conte.contect.subjectId === subject.subjectId);
-      const totalFocusedTime = user?.CompletedUserSubjectContent.reduce((total, conte) => {
-        if (conte.contect.subjectId === subject.subjectId) {
-          return total + (conte.totalTimeFocused ?? 0);
-        }
 
-        return total;
-      }, 0);
+      const totalFocusedTime =
+        user?.CompletedUserSubjectContent.reduce((total, conte) => {
+          if (conte.contect.subjectId === subject.subjectId) {
+            return total + (conte.totalTimeFocused ?? 0);
+          }
+
+          return total;
+        }, 0) ?? 0;
 
       const quiz = user?.Quiz.find((quiz) => Boolean(quiz.questions.find((question) => question.question.subject === subject.subject.name)));
+
+      const totalFocusedQuizTime = quiz?.questions.reduce((total, ques) => total + (ques.focusedTime ?? 0), 0) ?? 0;
 
       return {
         ...subject,
         startedAt: userContent?.startedAt,
         finishedAt: userContent?.finishedAt,
-        totalFocusedTime,
+        totalFocusedTime: totalFocusedTime + totalFocusedQuizTime,
         quiz,
       };
     });
@@ -135,7 +158,8 @@ export const teacherRouter = createTRPCRouter({
       ...user,
       userPosition: userPosition + 1,
       subjects: _subjects,
-      totalTimeFocused: totalTimeFocusedByUser.at(0)?._sum.totalTimeFocused ?? 0,
+      totalTimeFocused:
+        (totalTimeFocusedByUser.at(0)?._sum.totalTimeFocused ?? 0) + (result[0]?.totalfocusedtime ? Number(result[0].totalfocusedtime) : 0),
     };
   }),
 

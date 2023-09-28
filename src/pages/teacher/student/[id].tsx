@@ -80,7 +80,7 @@ const StudentPage: NextPage<{ id: string }> = ({ id }) => {
 
                 {subject.quiz ? (
                   <>
-                    <h1 className="text-xl font-bold">Preguntas Hechas</h1>
+                    <h1 className="text-xl font-bold">Preguntas</h1>
 
                     <div className="space-y-5">
                       {subject.quiz?.questions.map((question) => (
@@ -89,7 +89,13 @@ const StudentPage: NextPage<{ id: string }> = ({ id }) => {
                           {question.skipped ? <p>Saltada</p> : null}
                           {question.answeredCorrectFirstTry ? <p>Correcta en Primer Intento</p> : null}
                           {!question.answeredCorrectFirstTry && question.answeredCorrectSecondTry ? <p>Correcta en Segundo Intento</p> : null}
-                          {!question.answeredCorrectFirstTry && !question.answeredCorrectSecondTry && !question.skipped ? <p>Incorrecta</p> : null}
+                          {!question.answeredCorrectFirstTry &&
+                          !question.answeredCorrectSecondTry &&
+                          !question.skipped &&
+                          (question.answeredFirstTry || question.answeredSecondTry) ? (
+                            <p>Incorrecta</p>
+                          ) : null}
+                          {question.focusedTime ? <p>Segundos en Preguntas: {question.focusedTime}</p> : null}
                         </div>
                       ))}
                     </div>
