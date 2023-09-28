@@ -1,5 +1,6 @@
 import type { GetServerSideProps, NextPage } from "next";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import Navbar from "~/components/Navbar";
 import Subject from "~/components/Subject";
 import { formatDate } from "~/helpers/date";
@@ -36,6 +37,12 @@ const TeacherPage: NextPage = () => {
                 <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                   Última Conexión
                 </th>
+                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                  Tiempo total de uso
+                </th>
+                <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                  <span className="sr-only">Edit</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white">
@@ -45,6 +52,12 @@ const TeacherPage: NextPage = () => {
                   <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{user.email}</td>
                   <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{user.points}</td>
                   <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{user.lastConnection ? formatDate(user.lastConnection) : ""}</td>
+                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{user.totalTimeFocused} segundos</td>
+                  <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                    <Link href={`/teacher/student/${user.id}`} className="text-indigo-600 hover:text-indigo-900">
+                      Ver
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>

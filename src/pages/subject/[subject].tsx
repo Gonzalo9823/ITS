@@ -7,6 +7,7 @@ import { getServerAuthSession } from "~/server/auth";
 import { useRouter } from "next/router";
 import { CheckIcon } from "@heroicons/react/20/solid";
 import { useEffect, useState } from "react";
+import { useFocusTime } from "~/helpers/useFocusTracker";
 
 const DashboardPage: NextPage<{
   subject:
@@ -20,10 +21,13 @@ const DashboardPage: NextPage<{
   const { data: session } = useSession();
   const [showContent, setShowContent] = useState(false);
 
+  const getFocusedTime = useFocusTime();
+
   const { isLoading: isLoadingComplete, mutateAsync: completeContent } = api.subject.completeContent.useMutation();
 
   const { isLoading: isLoadingSubject, data, refetch } = api.subject.get.useQuery({ subject });
   const { isLoading: isLoadingHasActiveQuiz, data: hasActiveQuiz } = api.quiz.hasActiveQuiz.useQuery();
+  const { mutateAsync } = api.subject.updateFocusedTimeOnContent.useMutation();
   const { isLoading: isLoadingHasActiveComplexQuiz, data: hasActiveComplexQuiz } = api.complexQuiz.hasActiveQuiz.useQuery();
 
   const isLoading = isLoadingSubject || isLoadingHasActiveQuiz || isLoadingHasActiveComplexQuiz;
@@ -43,6 +47,21 @@ const DashboardPage: NextPage<{
 
     void goToQuiz();
   }, [router, hasActiveQuiz, hasActiveComplexQuiz]);
+
+  useEffect(() => {
+    const handleRouteChange = (_url: string) => {
+      if (data && data.completed !== true) {
+        const { totalTimeOnScreen } = getFocusedTime();
+        mutateAsync({ contentId: data.contents[0]!.id, focusedTime: totalTimeOnScreen }).catch(() => null);
+      }
+    };
+
+    router.events.on("routeChangeStart", handleRouteChange);
+
+    return () => {
+      router.events.off("routeChangeStart", handleRouteChange);
+    };
+  }, [data]);
 
   if (isLoading || !data || !showContent) return <h1>Loading...</h1>;
 

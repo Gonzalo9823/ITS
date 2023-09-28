@@ -78,6 +78,25 @@ export const subjectRouter = createTRPCRouter({
 
       const userCompletedContents = await ctx.prisma.completedUserSubjectContent.findMany({
         where: {
+          completed: true,
+          userId: ctx.session.user.id,
+          contect: {
+            subject: {
+              name: input.subject,
+            },
+          },
+        },
+        orderBy: {
+          id: "asc",
+        },
+      });
+
+      const userNotCompletedContents = await ctx.prisma.completedUserSubjectContent.findMany({
+        include: {
+          contect: true,
+        },
+        where: {
+          completed: false,
           userId: ctx.session.user.id,
           contect: {
             subject: {
@@ -101,7 +120,27 @@ export const subjectRouter = createTRPCRouter({
         };
       }
 
+      if (userNotCompletedContents.length === 1) {
+        return {
+          contents: [userNotCompletedContents[0]!.contect],
+          completed: false,
+          subject: {
+            name: subject.subject.name,
+            spanishName: subject.subject.spanishName,
+          },
+        };
+      }
+
       if (userCompletedContents.length === 0) {
+        await ctx.prisma.completedUserSubjectContent.create({
+          data: {
+            subjectContentId: subject.subject.contents[0]!.id,
+            userId: ctx.session.user.id,
+            completed: false,
+            startedAt: new Date(),
+          },
+        });
+
         return {
           contents: [subject.subject.contents[0]!],
           completed: false,
@@ -117,6 +156,15 @@ export const subjectRouter = createTRPCRouter({
       const nextContent = subject.subject.contents[lastCompletedContentIdx + 1];
 
       if (!nextContent) {
+        await ctx.prisma.completedUserSubjectContent.create({
+          data: {
+            subjectContentId: subject.subject.contents[0]!.id,
+            userId: ctx.session.user.id,
+            completed: false,
+            startedAt: new Date(),
+          },
+        });
+
         return {
           contents: [subject.subject.contents[0]!],
           completed: false,
@@ -126,6 +174,15 @@ export const subjectRouter = createTRPCRouter({
           },
         };
       }
+
+      await ctx.prisma.completedUserSubjectContent.create({
+        data: {
+          subjectContentId: nextContent.id,
+          userId: ctx.session.user.id,
+          completed: false,
+          startedAt: new Date(),
+        },
+      });
 
       return {
         contents: [nextContent],
@@ -137,6 +194,31 @@ export const subjectRouter = createTRPCRouter({
       };
     }),
 
+  updateFocusedTimeOnContent: protectedProcedure
+    .input(z.object({ contentId: z.number(), focusedTime: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const content = await ctx.prisma.completedUserSubjectContent.findFirstOrThrow({
+        where: {
+          subjectContentId: input.contentId,
+          completed: false,
+          userId: ctx.session.user.id,
+        },
+      });
+
+      const newFocusedTime = Math.round(input.focusedTime / 1000) + (content.totalTimeFocused ?? 0);
+
+      await ctx.prisma.completedUserSubjectContent.updateMany({
+        data: {
+          totalTimeFocused: newFocusedTime,
+        },
+        where: {
+          subjectContentId: input.contentId,
+          completed: false,
+          userId: ctx.session.user.id,
+        },
+      });
+    }),
+
   completeContent: protectedProcedure
     .input(
       z.object({
@@ -144,7 +226,19 @@ export const subjectRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const content = await ctx.prisma.completedUserSubjectContent.create({
+      await ctx.prisma.completedUserSubjectContent.updateMany({
+        data: {
+          completed: true,
+          finishedAt: new Date(),
+        },
+        where: {
+          completed: false,
+          subjectContentId: input.contentId,
+          userId: ctx.session.user.id,
+        },
+      });
+
+      const content = await ctx.prisma.completedUserSubjectContent.findFirstOrThrow({
         include: {
           contect: {
             include: {
@@ -152,9 +246,10 @@ export const subjectRouter = createTRPCRouter({
             },
           },
         },
-        data: {
-          userId: ctx.session.user.id,
+        where: {
+          completed: true,
           subjectContentId: input.contentId,
+          userId: ctx.session.user.id,
         },
       });
 

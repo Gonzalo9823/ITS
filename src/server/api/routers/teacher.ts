@@ -32,7 +32,111 @@ export const teacherRouter = createTRPCRouter({
       },
     });
 
-    return users;
+    const totalTimeFocusedByUser = await ctx.prisma.completedUserSubjectContent.groupBy({
+      by: ["userId"],
+      _sum: {
+        totalTimeFocused: true,
+      },
+      where: {
+        totalTimeFocused: {
+          not: null,
+        },
+      },
+    });
+
+    return users.map((user) => {
+      const totalTimeFocusedData = totalTimeFocusedByUser.find((item) => item.userId === user.id);
+      const totalTime = totalTimeFocusedData ? totalTimeFocusedData._sum.totalTimeFocused : 0;
+
+      return {
+        ...user,
+        totalTimeFocused: totalTime,
+      };
+    });
+  }),
+
+  getUser: teacherProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+    const totalUsers = await ctx.prisma.user.findMany({
+      orderBy: {
+        points: "desc",
+      },
+    });
+
+    const userPosition = totalUsers.findIndex(({ id }) => id === input.id);
+
+    const user = await ctx.prisma.user.findFirst({
+      include: {
+        CompletedUserSubjectContent: {
+          include: {
+            contect: true,
+          },
+          orderBy: {
+            id: "asc",
+          },
+        },
+        Quiz: {
+          include: {
+            questions: {
+              include: {
+                question: true,
+              },
+            },
+          },
+        },
+        subjects: {
+          include: {
+            subject: true,
+          },
+          orderBy: {
+            subjectId: "asc",
+          },
+        },
+      },
+      where: {
+        id: input.id,
+      },
+    });
+
+    const totalTimeFocusedByUser = await ctx.prisma.completedUserSubjectContent.groupBy({
+      by: ["userId"],
+      _sum: {
+        totalTimeFocused: true,
+      },
+      where: {
+        totalTimeFocused: {
+          not: null,
+        },
+        userId: input.id,
+      },
+    });
+
+    const _subjects = user!.subjects.map((subject) => {
+      const userContent = user?.CompletedUserSubjectContent.find((conte) => conte.contect.subjectId === subject.subjectId);
+      const totalFocusedTime = user?.CompletedUserSubjectContent.reduce((total, conte) => {
+        if (conte.contect.subjectId === subject.subjectId) {
+          return total + (conte.totalTimeFocused ?? 0);
+        }
+
+        return total;
+      }, 0);
+
+      const quiz = user?.Quiz.find((quiz) => Boolean(quiz.questions.find((question) => question.question.subject === subject.subject.name)));
+
+      return {
+        ...subject,
+        startedAt: userContent?.startedAt,
+        finishedAt: userContent?.finishedAt,
+        totalFocusedTime,
+        quiz,
+      };
+    });
+
+    return {
+      ...user,
+      userPosition: userPosition + 1,
+      subjects: _subjects,
+      totalTimeFocused: totalTimeFocusedByUser.at(0)?._sum.totalTimeFocused ?? 0,
+    };
   }),
 
   getQuestionsAnalytics: teacherProcedure.query(async ({ ctx }) => {
@@ -112,8 +216,8 @@ export const teacherRouter = createTRPCRouter({
       },
       where: {
         skipped: false,
-        answeredCorrectFirstTry: false,
-        answeredCorrectSecondTry: false,
+        answeredCorrectFirstTry: null,
+        answeredCorrectSecondTry: null,
       },
       take: 10,
       orderBy: {
@@ -123,10 +227,46 @@ export const teacherRouter = createTRPCRouter({
       },
     });
 
+    let topWrongSecond: typeof topWrongQuestions = [];
+    if (topWrongQuestions.length < 10) {
+      const result = await ctx.prisma.quizQuestion.groupBy({
+        by: ["questionId"],
+        _count: {
+          _all: true,
+        },
+        where: {
+          skipped: false,
+          answeredCorrectFirstTry: null,
+          answeredCorrectSecondTry: true,
+        },
+        take: 10,
+        orderBy: {
+          _count: {
+            questionId: "desc",
+          },
+        },
+      });
+
+      topWrongSecond = result;
+    }
+
+    const topWrong = [...topWrongQuestions, ...topWrongSecond].reduce(
+      (acc, curr) => {
+        const existing = acc.find((a) => a.questionId === curr.questionId);
+        if (existing) {
+          existing._count._all += curr._count._all;
+        } else {
+          acc.push(curr);
+        }
+        return acc;
+      },
+      [] as typeof topCorrectlyFirstTry,
+    );
+
     const questionDetails = await ctx.prisma.alternativeQuestion.findMany({
       where: {
         id: {
-          in: [...new Set([...topSkippedQuestions, ...topCorrectly, ...topWrongQuestions].map((q) => q.questionId))],
+          in: [...new Set([...topSkippedQuestions, ...topCorrectly, ...topWrong].map((q) => q.questionId))],
         },
       },
     });
@@ -172,7 +312,7 @@ export const teacherRouter = createTRPCRouter({
           count: r._count._all,
         };
       }),
-      topWrong: topWrongQuestions.map((r) => {
+      topWrong: topWrong.map((r) => {
         const details = questionDetails.find((q) => q.id === r.questionId);
 
         return {

@@ -93,6 +93,10 @@ model CompletedUserSubjectContent {
   contect          SubjectContent @relation(fields: [subjectContentId], references: [id])
   user             User           @relation(fields: [userId], references: [id])
   subjectContentId Int
+  completed        Boolean
+  startedAt        DateTime
+  finishedAt       DateTime?
+  totalTimeFocused Int?
   userId           String
 }
 
