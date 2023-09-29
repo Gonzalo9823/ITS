@@ -106,6 +106,7 @@ export const quizRouter = createTRPCRouter({
         },
         where: {
           subject: input?.subject,
+          deleted: false,
         },
       });
 

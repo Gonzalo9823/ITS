@@ -23,6 +23,7 @@ const NewComplexQuestionPage: NextPage<{
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [dificulty, setDificulty] = useState("");
+  const [answerDescription, setAnswerDescription] = useState("");
   const [svg, setSvg] = useState("");
   const [variables, setVariables] = useState<
     {
@@ -92,6 +93,23 @@ const NewComplexQuestionPage: NextPage<{
                 className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 sm:text-sm sm:leading-6"
                 value={subtitle}
                 onChange={(evt) => setSubtitle(evt.target.value)}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="answerDescription" className="block text-sm font-medium leading-6 text-gray-900">
+              Descripción de la respuesta
+            </label>
+            <div className="mt-2">
+              <input
+                type="text"
+                name="answerDescription"
+                id="answerDescription"
+                disabled={isLoadingCreate}
+                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 sm:text-sm sm:leading-6"
+                value={answerDescription}
+                onChange={(evt) => setAnswerDescription(evt.target.value)}
               />
             </div>
           </div>
@@ -298,6 +316,7 @@ const NewComplexQuestionPage: NextPage<{
                   svg,
                   codeToSolveEquation,
                   variables,
+                  answerDescription,
                 });
 
                 await router.push(`/teacher/question/complex/${newQuestionId}`);

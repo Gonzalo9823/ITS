@@ -18,11 +18,13 @@ declare module "next-auth" {
     user: DefaultSession["user"] & {
       id: string;
       role: "student" | "teacher";
+      points: number;
     };
   }
 
   interface User {
     role: "student" | "teacher";
+    points: number;
   }
 }
 
@@ -39,6 +41,7 @@ export const authOptions: NextAuthOptions = {
         ...session.user,
         id: user.id,
         role: user.role,
+        points: user.points,
       },
     }),
   },

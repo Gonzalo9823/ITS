@@ -18,7 +18,7 @@ const DashboardPage: NextPage = () => {
     <div className="space-y-5 px-20 py-4">
       <Navbar user={{ name: session?.user.name ?? "", role: session?.user.role ?? "student" }} />
       <section className="space-y-5">
-        <h1 className="text-xl font-bold">Path de Estudio</h1>
+        <h1 className="text-xl font-bold">Path de Estudio - Puntaje: {session?.user.points}</h1>
         <div className="grid grid-cols-12 gap-x-10 gap-y-28">
           {data.map(({ id, completed, subject, canView }) => (
             <Fragment key={id}>

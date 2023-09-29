@@ -631,6 +631,7 @@ export const teacherRouter = createTRPCRouter({
         ]),
         title: z.string().trim().min(1, "Título Requerido"),
         subtitle: z.string().trim(),
+        answerDescription: z.string().trim().optional(),
         dificulty: z
           .number({ invalid_type_error: "Número invalido" })
           .min(1, "La dificultad debe ser como minimo 1")
@@ -657,7 +658,7 @@ export const teacherRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { subject, title, subtitle, dificulty, svg, variables, codeToSolveEquation } = input;
+      const { subject, title, subtitle, dificulty, svg, variables, codeToSolveEquation, answerDescription } = input;
 
       const question = await ctx.prisma.complexQuestion.create({
         data: {
@@ -666,6 +667,7 @@ export const teacherRouter = createTRPCRouter({
           dificulty,
           svg,
           codeToSolveEquation,
+          answerHint: answerDescription,
           subject,
           variables: {
             create: variables.map((variable) => ({
@@ -688,6 +690,7 @@ export const teacherRouter = createTRPCRouter({
         id: z.number({ invalid_type_error: "Id invalido" }),
         title: z.string().trim().min(1, "Título Requerido"),
         subtitle: z.string().trim(),
+        answerDescription: z.string().trim().optional(),
         dificulty: z
           .number({ invalid_type_error: "Dificultad invalido" })
           .min(1, "La dificultad debe ser como minimo 1")
@@ -715,7 +718,7 @@ export const teacherRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, title, subtitle, dificulty, svg, variables, codeToSolveEquation } = input;
+      const { id, title, subtitle, dificulty, svg, variables, codeToSolveEquation, answerDescription } = input;
 
       const question = await ctx.prisma.complexQuestion.update({
         include: {
@@ -727,6 +730,7 @@ export const teacherRouter = createTRPCRouter({
           dificulty,
           svg,
           codeToSolveEquation,
+          answerHint: answerDescription,
         },
         where: {
           id,
