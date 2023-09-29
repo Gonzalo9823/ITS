@@ -34,12 +34,13 @@ const DashboardPage: NextPage<{
 
   useEffect(() => {
     const goToQuiz = async () => {
-      if (hasActiveQuiz) {
+      if (hasActiveQuiz === true) {
         console.log(hasActiveQuiz);
         await router.push("/quiz").catch(() => null);
       }
 
-      if (hasActiveComplexQuiz) {
+      if (hasActiveComplexQuiz === true) {
+        console.log(hasActiveComplexQuiz);
         await router.push("/complex-quiz").catch(() => null);
       }
 

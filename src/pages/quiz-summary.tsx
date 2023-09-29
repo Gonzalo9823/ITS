@@ -17,7 +17,7 @@ const QuestionSummaryPage: NextPage = () => {
 
   return (
     <div className="space-y-5 px-20 py-4">
-      <Navbar user={{ name: session?.user.name ?? "Usuario" }} />
+      <Navbar user={{ name: session?.user.name ?? "", role: session?.user.role ?? "student" }} />
       <section className="space-y-4">
         <h1 className="text-xl font-bold">Quiz Summary</h1>
         {data.questions.map((question, idx) => (
