@@ -15,6 +15,8 @@ export const complexQuizRouter = createTRPCRouter({
       },
     });
 
+    console.log(quiz);
+
     return Boolean(quiz);
   }),
   get: protectedProcedure
@@ -69,6 +71,7 @@ export const complexQuizRouter = createTRPCRouter({
         },
         where: {
           subject: input?.subject,
+          deleted: false,
         },
       });
 
@@ -180,7 +183,44 @@ export const complexQuizRouter = createTRPCRouter({
         },
       });
 
-      if (updateData.completedSecondTry) {
+      const userContents = await ctx.prisma.completedUserSubjectContent.findMany({
+        include: {
+          contect: {
+            include: {
+              subject: true,
+            },
+          },
+        },
+        orderBy: {
+          subjectContentId: "asc",
+        },
+        where: {
+          userId: ctx.session.user.id,
+          contect: {
+            subject: {
+              name: question.complexQuizQuestion[0]!.complexQuestion.subject,
+            },
+          },
+        },
+      });
+
+      const subjectContent = await ctx.prisma.subjectContent.findMany({
+        orderBy: {
+          id: "asc",
+        },
+        where: {
+          subject: {
+            name: question.complexQuizQuestion[0]!.complexQuestion.subject,
+          },
+        },
+      });
+
+      const completeSubject =
+        userContents.at(-1) === undefined || subjectContent.at(-1) === undefined
+          ? false
+          : userContents.at(-1)?.subjectContentId === subjectContent.at(-1)?.id;
+
+      if (updateData.completedSecondTry && completeSubject) {
         await ctx.prisma.userSubject.updateMany({
           data: {
             completed: true,
@@ -226,18 +266,6 @@ export const complexQuizRouter = createTRPCRouter({
         },
       });
 
-      await ctx.prisma.userSubject.updateMany({
-        data: {
-          completed: true,
-        },
-        where: {
-          subject: {
-            name: question.complexQuizQuestion[0]!.complexQuestion.subject,
-          },
-          userId: ctx.session.user.id,
-        },
-      });
-
       const user = await ctx.prisma.user.findFirstOrThrow({
         where: {
           id: ctx.session.user.id,
@@ -252,6 +280,57 @@ export const complexQuizRouter = createTRPCRouter({
           id: user.id,
         },
       });
+
+      const userContents = await ctx.prisma.completedUserSubjectContent.findMany({
+        include: {
+          contect: {
+            include: {
+              subject: true,
+            },
+          },
+        },
+        orderBy: {
+          subjectContentId: "asc",
+        },
+        where: {
+          userId: ctx.session.user.id,
+          contect: {
+            subject: {
+              name: question.complexQuizQuestion[0]!.complexQuestion.subject,
+            },
+          },
+        },
+      });
+
+      const subjectContent = await ctx.prisma.subjectContent.findMany({
+        orderBy: {
+          id: "asc",
+        },
+        where: {
+          subject: {
+            name: question.complexQuizQuestion[0]!.complexQuestion.subject,
+          },
+        },
+      });
+
+      const completeSubject =
+        userContents.at(-1) === undefined || subjectContent.at(-1) === undefined
+          ? false
+          : userContents.at(-1)?.subjectContentId === subjectContent.at(-1)?.id;
+
+      if (completeSubject) {
+        await ctx.prisma.userSubject.updateMany({
+          data: {
+            completed: true,
+          },
+          where: {
+            subject: {
+              name: question.complexQuizQuestion[0]!.complexQuestion.subject,
+            },
+            userId: ctx.session.user.id,
+          },
+        });
+      }
 
       return true;
     }),

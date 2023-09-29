@@ -35,6 +35,7 @@ const DashboardPage: NextPage<{
   useEffect(() => {
     const goToQuiz = async () => {
       if (hasActiveQuiz) {
+        console.log(hasActiveQuiz);
         await router.push("/quiz").catch(() => null);
       }
 
@@ -61,7 +62,7 @@ const DashboardPage: NextPage<{
     return () => {
       router.events.off("routeChangeStart", handleRouteChange);
     };
-  }, [data]);
+  }, [data?.contents.at(0)?.id]);
 
   if (isLoading || !data || !showContent) return <h1>Loading...</h1>;
 

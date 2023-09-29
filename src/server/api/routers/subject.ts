@@ -200,7 +200,6 @@ export const subjectRouter = createTRPCRouter({
       const content = await ctx.prisma.completedUserSubjectContent.findFirstOrThrow({
         where: {
           subjectContentId: input.contentId,
-          completed: false,
           userId: ctx.session.user.id,
         },
       });
@@ -213,7 +212,6 @@ export const subjectRouter = createTRPCRouter({
         },
         where: {
           subjectContentId: input.contentId,
-          completed: false,
           userId: ctx.session.user.id,
         },
       });
@@ -266,9 +264,27 @@ export const subjectRouter = createTRPCRouter({
         },
       });
 
-      if (subjectContents.contents.at(-1)?.id === input.contentId) {
-        // const isComplex = Math.random() < 0.5;
-        const isComplex = false;
+      const user = await ctx.prisma.user.findUniqueOrThrow({
+        where: {
+          id: ctx.session.user.id,
+        },
+      });
+
+      const totalTimeFocused = content.totalTimeFocused ?? 0;
+      const pointsToAdd = totalTimeFocused > 120 && totalTimeFocused < 240 ? -1 : 1;
+      const totalPoints = user.points + pointsToAdd;
+
+      await ctx.prisma.user.update({
+        data: {
+          points: totalPoints,
+        },
+        where: {
+          id: ctx.session.user.id,
+        },
+      });
+
+      if (subjectContents.contents.at(-1)?.id === input.contentId || parseInt(totalPoints.toFixed(0)) % 3 === 0) {
+        const isComplex = Math.random() < 0.5;
 
         return {
           changeRoute: true,

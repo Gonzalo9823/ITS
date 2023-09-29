@@ -27,6 +27,8 @@ export const quizRouter = createTRPCRouter({
       },
     });
 
+    console.log(hasActiveQuiz);
+
     return Boolean(hasActiveQuiz);
   }),
 
@@ -249,6 +251,43 @@ export const quizRouter = createTRPCRouter({
         newUserPoints -= question.question.dificulty * 0.85;
       }
 
+      const userContents = await ctx.prisma.completedUserSubjectContent.findMany({
+        include: {
+          contect: {
+            include: {
+              subject: true,
+            },
+          },
+        },
+        orderBy: {
+          subjectContentId: "asc",
+        },
+        where: {
+          userId: ctx.session.user.id,
+          contect: {
+            subject: {
+              name: question.question.subject,
+            },
+          },
+        },
+      });
+
+      const subjectContent = await ctx.prisma.subjectContent.findMany({
+        orderBy: {
+          id: "asc",
+        },
+        where: {
+          subject: {
+            name: question.question.subject,
+          },
+        },
+      });
+
+      const completeSubject =
+        userContents.at(-1) === undefined || subjectContent.at(-1) === undefined
+          ? false
+          : userContents.at(-1)?.subjectContentId === subjectContent.at(-1)?.id;
+
       const alternativeQuestion = await ctx.prisma.quizQuestion.update({
         include: {
           question: {
@@ -263,7 +302,7 @@ export const quizRouter = createTRPCRouter({
         },
       });
 
-      if (updateData.answeredSecondTry) {
+      if (updateData.answeredSecondTry && completeSubject) {
         await ctx.prisma.userSubject.updateMany({
           data: {
             completed: true,
@@ -418,6 +457,43 @@ export const quizRouter = createTRPCRouter({
         },
       });
 
+      const userContents = await ctx.prisma.completedUserSubjectContent.findMany({
+        include: {
+          contect: {
+            include: {
+              subject: true,
+            },
+          },
+        },
+        orderBy: {
+          subjectContentId: "asc",
+        },
+        where: {
+          userId: ctx.session.user.id,
+          contect: {
+            subject: {
+              name: question.question.subject,
+            },
+          },
+        },
+      });
+
+      const subjectContent = await ctx.prisma.subjectContent.findMany({
+        orderBy: {
+          id: "asc",
+        },
+        where: {
+          subject: {
+            name: question.question.subject,
+          },
+        },
+      });
+
+      const completeSubject =
+        userContents.at(-1) === undefined || subjectContent.at(-1) === undefined
+          ? false
+          : userContents.at(-1)?.subjectContentId === subjectContent.at(-1)?.id;
+
       if (!quiz.completedFirstTry && questionIdx + 1 === quiz.amountOfQuestions) {
         const allCorrect = quiz.questions.every((question) => {
           if (question.id === input.questionId) return true;
@@ -442,7 +518,7 @@ export const quizRouter = createTRPCRouter({
           },
         });
 
-        if (updateQuizData.completedSecondTry) {
+        if (updateQuizData.completedSecondTry && completeSubject) {
           await ctx.prisma.userSubject.updateMany({
             data: {
               completed: true,
@@ -474,17 +550,19 @@ export const quizRouter = createTRPCRouter({
             },
           });
 
-          await ctx.prisma.userSubject.updateMany({
-            data: {
-              completed: true,
-            },
-            where: {
-              subject: {
-                name: alternativeQuiz.question.subject,
+          if (completeSubject) {
+            await ctx.prisma.userSubject.updateMany({
+              data: {
+                completed: true,
               },
-              userId: ctx.session.user.id,
-            },
-          });
+              where: {
+                subject: {
+                  name: alternativeQuiz.question.subject,
+                },
+                userId: ctx.session.user.id,
+              },
+            });
+          }
 
           return {
             completed: true,
